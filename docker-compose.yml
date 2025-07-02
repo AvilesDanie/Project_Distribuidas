@@ -1,0 +1,149 @@
+version: "3.9"
+
+services:
+  # Microservicio de Usuarios
+  usuarios:
+    build:
+      context: ./ms-usuarios
+    container_name: usuarios_service
+    depends_on:
+      - cockroach1
+      - rabbitmq1
+    environment:
+      - DATABASE_URL=postgresql://root@crdb1:26257,crdb2:26257,crdb3:26257/usuarios_db?sslmode=disable
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
+    networks:
+      - backend
+
+  # Microservicio de Eventos
+  eventos:
+    build:
+      context: ./ms-eventos
+    container_name: eventos_service
+    depends_on:
+      - cockroach1
+      - rabbitmq1
+    environment:
+      - DATABASE_URL=postgresql://root@crdb2:26257,crdb1:26257,crdb3:26257/eventos_db?sslmode=disable
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
+    networks:
+      - backend
+
+  # Microservicio de Entradas
+  entradas:
+    build:
+      context: ./ms-entradas
+    container_name: entradas_service
+    depends_on:
+      - cockroach1
+      - rabbitmq1
+    environment:
+      - DATABASE_URL=postgresql://root@crdb3:26257,crdb1:26257,crdb2:26257/entradas_db?sslmode=disable
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
+    networks:
+      - backend
+
+  # Microservicio de Notificaciones
+  notificaciones:
+    build:
+      context: ./ms-notificaciones
+    container_name: notificaciones_service
+    depends_on:
+      - rabbitmq1
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
+    networks:
+      - backend
+
+  # NGINX API Gateway
+  nginx:
+    build:
+      context: ./nginx
+    container_name: nginx_gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - usuarios
+      - eventos
+      - entradas
+      - notificaciones
+    networks:
+      - backend
+
+  # CockroachDB Nodo 1
+  cockroach1:
+    image: cockroachdb/cockroach:latest
+    container_name: crdb1
+    hostname: crdb1
+    ports:
+      - "26257:26257" # SQL client
+      - "8080:8080" # Admin UI
+    volumes:
+      - cockroach1:/cockroach/cockroach-data
+    command:
+    - start-single-node
+    - --insecure
+    - --advertise-addr=crdb1
+    networks:
+      - backend
+
+  # CockroachDB Nodo 2
+  cockroach2:
+    image: cockroachdb/cockroach:latest
+    container_name: crdb2
+    hostname: crdb2
+    ports:
+      - "26258:26257"
+      - "8081:8080"
+    volumes:
+      - cockroach2:/cockroach/cockroach-data
+    command: 
+    - start
+    - --insecure
+    - --store=node2
+    - --listen-addr=0.0.0.0:26257
+    - --http-addr=0.0.0.0:8080
+    - --join=crdb1:26257
+    - --advertise-addr=crdb2
+    networks:
+      - backend
+
+  # CockroachDB Nodo 3
+  cockroach3:
+    image: cockroachdb/cockroach:latest
+    container_name: crdb3
+    hostname: crdb3
+    ports:
+      - "26259:26257"
+      - "8082:8080"
+    volumes:
+      - cockroach3:/cockroach/cockroach-data
+    command:
+    - start 
+    - --insecure
+    - --store=node3
+    - --listen-addr=0.0.0.0:26257
+    - --http-addr=0.0.0.0:8080
+    - --join=crdb1:26257
+    - --advertise-addr=crdb3
+    networks:
+      - backend
+
+  # RabbitMQ
+  rabbitmq1:
+    image: rabbitmq:3-management
+    container_name: rabbitmq1
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
+
+volumes:
+  cockroach1:
+  cockroach2:
+  cockroach3:
+
+
+networks:
+  backend:
