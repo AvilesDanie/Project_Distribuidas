@@ -1,7 +1,9 @@
 fastapi
 uvicorn
-asyncpg
 sqlalchemy
+psycopg2-binary
 pydantic
-aio_pika
-python-multipart
+passlib[bcrypt]
+pyjwt
+pika
+python-jose==3.3.0
