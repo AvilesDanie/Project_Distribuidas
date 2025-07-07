@@ -6,8 +6,10 @@ from app.controller.entrada_controller import router as entrada_router
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title=settings.APP_NAME)
-
+app = FastAPI(
+    title=settings.APP_NAME,
+    root_path="/api/v1/entradas"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

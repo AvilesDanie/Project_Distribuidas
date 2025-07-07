@@ -8,7 +8,8 @@ from app.controller.usuario_controller import router as usuario_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title=settings.APP_NAME
+    title=settings.APP_NAME,
+    root_path="/api/v1/usuarios"
 )
 
 # CORS (ajusta orígenes según necesites)
