@@ -2,7 +2,6 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     APP_NAME: str = "ms-usuarios"
-    APP_PORT: int = 8000
 
     DATABASE_URL: str
     SECRET_KEY: str

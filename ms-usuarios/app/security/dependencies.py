@@ -6,7 +6,7 @@ from app.security.auth import verify_token
 from app.model.usuario_model import Usuario, RolEnum
 from app.repository.usuario_repository import get_usuario_por_id_estado
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/usuarios/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/usuarios/usuarios/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Usuario:
     data = verify_token(token)
