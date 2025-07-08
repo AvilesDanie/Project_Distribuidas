@@ -1,10 +1,9 @@
+from app.config.database import Base
 from sqlalchemy import (
     Column, Integer, String, Date, Time, Enum, JSON
 )
-from sqlalchemy.orm import declarative_base
 import enum
 
-Base = declarative_base()
 
 class EstadoEvento(str, enum.Enum):
     BORRADOR   = "borrador"
