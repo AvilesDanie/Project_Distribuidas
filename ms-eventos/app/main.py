@@ -8,7 +8,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.APP_NAME,
-    root_path="/api/v1/usuarios"
+    root_path="/api/v1/eventos"
 )
 
 app.include_router(evento_router, prefix="/eventos", tags=["eventos"])
