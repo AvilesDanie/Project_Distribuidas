@@ -26,7 +26,7 @@ services:
       - cockroach-init
       - rabbitmq1
     environment:
-      - DATABASE_URL=cockroachdb://root@cockroach2:26257/usuarios_db
+      - DATABASE_URL=cockroachdb://root@cockroach2:26257/eventos_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
       - SECRET_KEY=supersecretkey123
       - RABBITMQ_QUEUE=eventos_queue
@@ -42,7 +42,7 @@ services:
       - cockroach-init
       - rabbitmq1
     environment:
-      - DATABASE_URL=cockroachdb://root@cockroach3:26257/usuarios_db
+      - DATABASE_URL=cockroachdb://root@cockroach3:26257/entradas_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
       - SECRET_KEY=supersecretkey123
       - RABBITMQ_QUEUE=entradas_queue
