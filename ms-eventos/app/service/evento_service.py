@@ -8,7 +8,10 @@ from app.repository.evento_repository import (
 from app.events.publisher import publish_evento_creado
 
 def crear_nuevo_evento(db: Session, data: EventoCreate):
-    evento = Evento(**data.dict())
+    payload = data.dict()
+    if payload["hora"] and payload["hora"].tzinfo:
+        payload["hora"] = payload["hora"].replace(tzinfo=None)
+    evento = Evento(**payload)
     evt = crear_evento(db, evento)
     publish_evento_creado(evt.id)
     return evt
