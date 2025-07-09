@@ -12,19 +12,18 @@ Este proyecto implementa un sistema de microservicios para la gestión de usuari
    git clone https://github.com/AvilesDanie/Project_Distribuidas.git
    cd Project_Distribuidas
    ```
-2. Asegúrate de que los directorios `ms-usuarios`, `ms-eventos`, `ms-entradas`, `ms-notificaciones` y `nginx` estén presentes con sus respectivos `Dockerfile` y código fuente.
-3. Construye y ejecuta los servicios con Docker Compose:
+2. Construye y ejecuta los servicios con Docker Compose:
    ```bash
    docker-compose up --build -d
    ```
    - Esto construirá las imágenes de los microservicios y levantará los contenedores en segundo plano.
    - Los servicios incluyen: `usuarios`, `eventos`, `entradas`, `notificaciones`, `nginx`, `cockroach1`, `cockroach2`, `cockroach3`, `rabbitmq1` y `cockroach-init`.
-4. Verifica que los servicios estén corriendo:
+3. Verifica que los servicios estén corriendo:
    ```bash
    docker ps
    ```
-5. Accede al sistema a través del puerto `80` (NGINX actúa como API Gateway). Todas las rutas estarán disponibles en `http://localhost/api/v1/`.
-6. Para detener los servicios:
+4. Accede al sistema a través del puerto `80` (NGINX actúa como API Gateway). Todas las rutas estarán disponibles en `http://localhost/api/v1/`.
+5. Para detener los servicios:
    ```bash
    docker-compose down
    ```
