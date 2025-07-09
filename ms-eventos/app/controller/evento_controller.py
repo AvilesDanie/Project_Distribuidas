@@ -89,7 +89,7 @@ def ventas_por_evento(evento_id: int, request: Request):
             raise HTTPException(status_code=401, detail="Token faltante")
 
         response = httpx.get(
-            f"http://localhost:8002/api/v1/entradas/get-nodisponibles/{evento_id}",
+            f"http://nginx/api/v1/entradas/entradas/get-nodisponibles/{evento_id}",
             headers={"Authorization": token}
         )
 
