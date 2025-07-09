@@ -7,7 +7,10 @@ from app.controller.entrada_controller import router as entrada_router
 # Crear tablas
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title=settings.APP_NAME)
+app = FastAPI(
+    title=settings.APP_NAME,
+    root_path="/api/v1/entradas"
+)
 
 # CORS
 app.add_middleware(
@@ -18,7 +21,7 @@ app.add_middleware(
 )
 
 # Rutas
-app.include_router(entrada_router, prefix="/api/v1/entradas", tags=["Entradas"])
+app.include_router(entrada_router, prefix="/entradas", tags=["Entradas"])
 
 # 🔁 Iniciar el listener
 import threading

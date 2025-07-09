@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "ms-notificaciones"
     DATABASE_URL: str
     RABBITMQ_URL: str
-    RABBITMQ_QUEUE: str = "notificaciones_queue"
+    RABBITMQ_QUEUE: str
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
 

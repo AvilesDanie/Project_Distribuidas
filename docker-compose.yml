@@ -14,6 +14,7 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
       - SECRET_KEY=supersecretkey123
       - RABBITMQ_QUEUE=usuarios_queue
+      - RABBITMQ_NOTIF_QUEUE=notificaciones_queue
     networks:
       - backend
 
@@ -46,6 +47,7 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
       - SECRET_KEY=supersecretkey123
       - RABBITMQ_QUEUE=entradas_queue
+      - RABBITMQ_LISTENER_QUEUE=entradas_events
     networks:
       - backend
 
@@ -58,6 +60,7 @@ services:
       - rabbitmq1
       - cockroach-init
     environment:
+      - DATABASE_URL=cockroachdb://root@cockroach1:26257/notificaciones_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
       - SECRET_KEY=supersecretkey123
       - RABBITMQ_QUEUE=notificaciones_queue
