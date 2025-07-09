@@ -1,25 +1,14 @@
+from sqlalchemy import Column, Integer, String
 from app.config.database import Base
-from sqlalchemy import (
-    Column, Integer, String, Date, Time, Enum, JSON
-)
-import enum
-
-
-class EstadoEvento(str, enum.Enum):
-    BORRADOR   = "borrador"
-    PUBLICADO  = "publicado"
-    CANCELADO  = "cancelado"
 
 class Evento(Base):
     __tablename__ = "eventos"
 
-    id          = Column(Integer, primary_key=True, index=True)
-    nombre      = Column(String, nullable=False)
-    descripcion = Column(String, nullable=True)
-    fecha       = Column(Date,   nullable=False)
-    hora        = Column(Time,   nullable=False)
-    ubicacion   = Column(String, nullable=True)
-    tipo        = Column(String, nullable=False)
-    categorias  = Column(JSON,   nullable=True)   # lista de categorías
-    aforo       = Column(Integer, nullable=False)
-    estado      = Column(Enum(EstadoEvento), default=EstadoEvento.BORRADOR, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String, nullable=False)
+    descripcion = Column(String, nullable=False)
+    fecha = Column(String, nullable=False)
+    categoria = Column(String, nullable=False)
+    tipo = Column(String, nullable=False)
+    aforo = Column(Integer, nullable=False)
+    estado = Column(String, default="NO_PUBLICADO")  # Otros: PUBLICADO, FINALIZADO, DESACTIVADO

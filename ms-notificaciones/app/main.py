@@ -1,12 +1,11 @@
-import threading
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from app.websocket_manager import WebSocketManager
 from fastapi.middleware.cors import CORSMiddleware
 from app.controller.notificacion_controller import router as notificacion_router
-from app.websocket_manager import manager
 
-from app.listener.consumer import start_listener
-app = FastAPI()
+app = FastAPI(title="ms-notificaciones")
 
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,17 +13,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rutas HTTP
 app.include_router(notificacion_router, prefix="/api/v1/notificaciones", tags=["Notificaciones"])
-threading.Thread(target=start_listener, daemon=True).start()
+
+# WebSocket Manager
+manager = WebSocketManager()
 
 @app.websocket("/ws/notificaciones")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()  # ✅ Este es el único accept permitido
+    await websocket.accept()  # ✅ DEBE SER LO PRIMERO
     try:
-        user_id = websocket.query_params.get("usuario_id")
-        user_id = int(user_id) if user_id else None
-        await manager.connect(websocket, user_id)
+        usuario_id = websocket.query_params.get("usuario_id")
+        usuario_id = int(usuario_id) if usuario_id else None
+        await manager.connect(websocket, usuario_id)
         while True:
-            await websocket.receive_text()  # mantiene la conexión viva
+            await websocket.receive_text()  # Solo mantiene la conexión viva
     except WebSocketDisconnect:
         manager.disconnect(websocket)

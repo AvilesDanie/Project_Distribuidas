@@ -1,15 +1,9 @@
 import pika
 from app.config.settings import settings
 
-def publish_message(message: str):
+def get_channel():
     params = pika.URLParameters(settings.RABBITMQ_URL)
     connection = pika.BlockingConnection(params)
     channel = connection.channel()
     channel.queue_declare(queue=settings.RABBITMQ_QUEUE, durable=True)
-    channel.basic_publish(
-        exchange='',
-        routing_key=settings.RABBITMQ_QUEUE,
-        body=message
-    )
-    print("📤 Mensaje enviado a RabbitMQ:", message)
-    connection.close()
+    return channel, connection

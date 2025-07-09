@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.dto.usuario_dto import UsuarioCreate, UsuarioUpdate, PasswordUpdate, UsuarioResponse
 from app.repository.usuario_repository import (
-    create_usuario, get_usuario_por_nombre, get_usuario_por_id, get_usuarios,
+    create_usuario, get_usuario_por_email, get_usuario_por_nombre, get_usuario_por_id, get_usuarios,
     update_usuario, deactivate_usuario
 )
 from app.security.auth import hash_password, verify_password
@@ -10,6 +10,10 @@ from app.events.publisher import publish_user_created
 def register_user(db: Session, data: UsuarioCreate):
     if get_usuario_por_nombre(db, data.usuario):
         raise ValueError("El nombre de usuario ya existe")
+    if get_usuario_por_email(db, data.email):
+        raise ValueError("El correo ya está registrado")
+    if len(data.password) < 8:
+        raise ValueError("La contraseña debe tener al menos 8 caracteres")  # ✅ Validación añadida
     user_dict = data.dict()
     user_dict["password"] = hash_password(data.password)
     new_user = create_usuario(db, user_dict)

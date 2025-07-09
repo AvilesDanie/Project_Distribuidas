@@ -41,3 +41,8 @@ def update_usuario(db: Session, user: Usuario, datos):
 def deactivate_usuario(db: Session, user: Usuario):
     user.estado = EstadoEnum.desactivado
     db.commit()
+def get_usuario_por_email(db: Session, email: str):
+    return db.query(Usuario).filter(
+        Usuario.email == email,
+        Usuario.estado == EstadoEnum.activo
+    ).first()

@@ -18,3 +18,14 @@ def historial_entradas(db: Session, usuario_id: int):
 
 def get_entrada(db: Session, entrada_id: int):
     return db.query(Entrada).filter(Entrada.id == entrada_id).first()
+def get_entradas_disponibles(db: Session, evento_id: int):
+    return db.query(Entrada).filter(
+        Entrada.evento_id == evento_id,
+        Entrada.usuario_id == None
+    ).all()
+
+def get_entradas_asignadas(db: Session, evento_id: int):
+    return db.query(Entrada).filter(
+        Entrada.evento_id == evento_id,
+        Entrada.usuario_id != None
+    ).all()

@@ -4,12 +4,12 @@ from app.config.settings import settings
 from app.config.database import Base, engine
 from app.controller.entrada_controller import router as entrada_router
 
+# Crear tablas
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    root_path="/api/v1/entradas"
-)
+app = FastAPI(title=settings.APP_NAME)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,4 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(entrada_router, prefix="/entradas", tags=["Entradas"])
+# Rutas
+app.include_router(entrada_router, prefix="/api/v1/entradas", tags=["Entradas"])
+
+# 🔁 Iniciar el listener
+import threading
+from app.listener.consumer import start_listener
+
+threading.Thread(target=start_listener, daemon=True).start()

@@ -1,14 +1,10 @@
 from fastapi import FastAPI
 from app.config.database import Base, engine
-from app.config.settings import settings
 from app.controller.evento_controller import router as evento_router
 
-# Crear tablas
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    root_path="/api/v1/eventos"
-)
+app = FastAPI(title="Microservicio de Eventos")
 
-app.include_router(evento_router, prefix="/eventos", tags=["eventos"])
+# ✅ Agrega el prefijo adecuado
+app.include_router(evento_router, prefix="/api/v1/eventos", tags=["Eventos"])

@@ -1,6 +1,8 @@
 import httpx
 from sqlalchemy.orm import Session
 from app.repository.entrada_repository import (
+    get_entradas_disponibles,
+    get_entradas_asignadas,
     asignar_entrada, mis_entradas, historial_entradas, get_entrada
 )
 from app.events.publisher import publish_entrada_comprada
@@ -27,3 +29,8 @@ async def evento_por_entrada(entrada_id: int, db: Session):
         if response.status_code != 200:
             raise ValueError("Evento no encontrado")
         return response.json()
+def obtener_disponibles(db: Session, evento_id: int):
+    return get_entradas_disponibles(db, evento_id)
+
+def obtener_no_disponibles(db: Session, evento_id: int):
+    return get_entradas_asignadas(db, evento_id)

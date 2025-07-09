@@ -158,7 +158,8 @@ services:
         ./cockroach sql --insecure --host=cockroach1 -e \"
           CREATE DATABASE IF NOT EXISTS usuarios_db;
           CREATE DATABASE IF NOT EXISTS eventos_db;
-          CREATE DATABASE IF NOT EXISTS entradas_db;\"
+          CREATE DATABASE IF NOT EXISTS entradas_db;
+          CREATE DATABASE IF NOT EXISTS notificaciones_db;\"
       "
     networks:
       - backend

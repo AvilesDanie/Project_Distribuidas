@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     RABBITMQ_URL: str
     RABBITMQ_QUEUE: str
+    RABBITMQ_LISTENER_QUEUE: str
 
     class Config:
         env_file = ".env"

@@ -1,18 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
+import httpx
+from app.repository.usuario_repository import get_usuario_por_nombre, get_usuario_por_email
+
 
 from app.config.database import get_db
+from app.events.publisher import publish_user_created
 from app.dto.usuario_dto import (
     UsuarioCreate, UsuarioResponse, UsuarioUpdate, PasswordUpdate
 )
 from app.dto.auth_dto import TokenResponse
-from app.security.auth import create_token
+from app.security.auth import create_token, hash_password
 from app.security.dependencies import get_current_user, require_admin
 from app.service.usuario_service import (
     register_user, authenticate_user, list_users,
     modify_user, change_password, delete_user
 )
+from app.service.usuario_service import create_usuario
 
 router = APIRouter()
 
@@ -41,12 +46,24 @@ def crear_admin(
     db: Session = Depends(get_db),
     _: Depends = Depends(require_admin)
 ):
-    usuario.rol = "administrador"
     try:
-        new_admin = register_user(db, usuario)
+        # Validaciones explícitas
+        if get_usuario_por_nombre(db, usuario.usuario):
+            raise ValueError("El nombre de usuario ya existe")
+        if get_usuario_por_email(db, usuario.email):
+            raise ValueError("El correo ya está registrado")
+        if len(usuario.password) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+
+        user_dict = usuario.dict()
+        user_dict["rol"] = "administrador"
+        user_dict["password"] = hash_password(user_dict["password"])
+        new_admin = create_usuario(db, user_dict)
+        publish_user_created(new_admin.id)
+        return new_admin
+
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    return new_admin
 
 # Listado de usuarios (solo admin)
 @router.get("/get-usuarios", response_model=list[UsuarioResponse])

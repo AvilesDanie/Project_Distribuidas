@@ -8,3 +8,5 @@ def publish_entrada_comprada(entrada_id: int, usuario_id: int):
         "usuario_id": usuario_id
     }
     publish_message(json.dumps(event))
+
+

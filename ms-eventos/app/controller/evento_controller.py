@@ -1,46 +1,106 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from app.config.database import SessionLocal
+from app.dto.evento_dto import EventoCreateDTO, EventoUpdateDTO, EventoOutDTO
+from app.service import evento_service
+from app.security.dependencies import get_current_user, require_admin
 from typing import List
-from app.config.database import get_db
-from app.dto.evento_dto import (
-    EventoCreate, EventoResponse, EventoUpdate
-)
-from app.service.evento_service import (
-    crear_nuevo_evento, get_evento,
-    get_eventos, update_evento, delete_evento
-)
+import httpx
 
-router = APIRouter(prefix="/api/v1/eventos", tags=["eventos"])
+router = APIRouter()
 
-@router.post("/", response_model=EventoResponse)
-def crear(evento: EventoCreate, db: Session = Depends(get_db)):
-    return crear_nuevo_evento(db, evento)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@router.get("/", response_model=List[EventoResponse])
-def listar(
-    db: Session = Depends(get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1)
+@router.post("/post-evento", response_model=EventoOutDTO)
+def crear(dto: EventoCreateDTO, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.crear_evento(db, dto)
+
+@router.get("/get-eventospublicados", response_model=List[EventoOutDTO])
+def publicados(db: Session = Depends(get_db)):
+    return evento_service.listar_publicados(db)
+
+@router.get("/get-eventos", response_model=List[EventoOutDTO])
+def todos(db: Session = Depends(get_db)):
+    return evento_service.listar_todos(db)
+
+@router.get("/get-eventopublicado/{id}", response_model=EventoOutDTO)
+def publicado(id: int, db: Session = Depends(get_db)):
+    evento = evento_service.obtener_evento(db, id)
+    if evento and evento.estado == "PUBLICADO":
+        return evento
+    raise HTTPException(404, "Evento no encontrado")
+
+@router.get("/get-evento/{id}", response_model=EventoOutDTO)
+def obtener(id: int, db: Session = Depends(get_db)):
+    evento = evento_service.obtener_evento(db, id)
+    if not evento:
+        raise HTTPException(404, "Evento no encontrado")
+    return evento
+
+@router.put("/update-evento/{id}", response_model=EventoOutDTO)
+def actualizar(id: int, dto: EventoUpdateDTO, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.actualizar_evento(db, id, dto)
+
+@router.put("/desactivar-evento/{id}")
+def desactivar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.desactivar_evento(db, id)
+
+@router.put("/publicar-evento/{id}")
+def publicar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.publicar_evento(db, id)
+
+@router.put("/terminar-evento/{id}")
+def terminar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.finalizar_evento(db, id)
+
+@router.delete("/delete-evento/{id}")
+def eliminar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.eliminar_evento(db, id)
+
+@router.get("/get-categorias", response_model=List[str])
+def obtener_categorias(db: Session = Depends(get_db)):
+    return evento_service.obtener_categorias(db)
+
+
+@router.get("/buscar-eventos", response_model=List[EventoOutDTO])
+def buscar_eventos(
+    categoria: str = "",
+    tipo: str = "",
+    fecha: str = "",
+    palabra: str = "",
+    db: Session = Depends(get_db)
 ):
-    return get_eventos(db, skip=skip, limit=limit)
+    return evento_service.buscar_eventos(db, categoria, tipo, fecha, palabra)
 
-@router.get("/{id}", response_model=EventoResponse)
-def leer(id: int, db: Session = Depends(get_db)):
-    try:
-        return get_evento(db, id)
-    except ValueError as e:
-        raise HTTPException(404, detail=str(e))
+@router.get("/estadisticas")
+def estadisticas(db: Session = Depends(get_db)):
+    return evento_service.obtener_estadisticas(db)
 
-@router.put("/{id}", response_model=EventoResponse)
-def actualizar(id: int, data: EventoUpdate, db: Session = Depends(get_db)):
+@router.get("/ventas")
+def ventas_por_evento(evento_id: int, request: Request):
     try:
-        return update_evento(db, id, data)
-    except ValueError as e:
-        raise HTTPException(404, detail=str(e))
+        token = request.headers.get("authorization")
+        if not token:
+            raise HTTPException(status_code=401, detail="Token faltante")
 
-@router.delete("/{id}", status_code=204)
-def eliminar(id: int, db: Session = Depends(get_db)):
-    try:
-        delete_evento(db, id)
-    except ValueError as e:
-        raise HTTPException(404, detail=str(e))
+        response = httpx.get(
+            f"http://localhost:8002/api/v1/entradas/get-nodisponibles/{evento_id}",
+            headers={"Authorization": token}
+        )
+
+        print("STATUS:", response.status_code)
+        print("BODY:", response.text)
+
+        if response.status_code == 200:
+            return {"evento_id": evento_id, "entradas_vendidas": len(response.json())}
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Error al consultar entradas")
+
+    except httpx.RequestError as e:
+        print("EXCEPTION:", str(e))
+        raise HTTPException(status_code=503, detail="Servicio de entradas no disponible")
