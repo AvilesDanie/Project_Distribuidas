@@ -3,7 +3,7 @@ from sqlalchemy import func
 from app.model.evento_model import Evento
 from app.dto.evento_dto import EventoCreateDTO, EventoUpdateDTO
 from app.repository import evento_repository
-from app.events.publisher import publicar_evento_creado, publicar_evento_finalizado
+from app.events.publisher import publicar_evento_cancelado, publicar_evento_creado, publicar_evento_finalizado
 
 
 def crear_evento(db: Session, evento: EventoCreateDTO):
@@ -27,7 +27,7 @@ def desactivar_evento(db: Session, id: int):
 def publicar_evento(db: Session, id: int):
     evento = evento_repository.cambiar_estado(db, id, "PUBLICADO")
     if evento:
-        publicar_evento_creado(evento.id, evento.aforo)  # ✅ aquí se emite el evento real
+        publicar_evento_creado(evento.id, evento.aforo, evento.titulo, evento.precio)
     return evento
 
 def finalizar_evento(db: Session, id: int):
@@ -67,4 +67,9 @@ def obtener_estadisticas(db: Session):
         resultado[estado] = cantidad
     return resultado
 
+def cancelar_evento(db: Session, id: int):
+    evento = evento_repository.cambiar_estado(db, id, "CANCELADO")
+    if evento:
+        publicar_evento_cancelado(evento.id)
+    return evento
 

@@ -4,6 +4,7 @@ from app.config.database import get_db
 from app.dto.entrada_dto import EntradaResponse
 from app.security.dependencies import get_current_user, require_admin
 from app.service.entrada_service import (
+    cancelar_entrada_usuario,
     comprar_entrada,
     obtener_mis_entradas,
     historial_usuario,
@@ -43,3 +44,11 @@ def entradas_disponibles(evento_id: int, db: Session = Depends(get_db)):
 @router.get("/get-nodisponibles/{evento_id}", response_model=list[EntradaResponse])
 def entradas_no_disponibles(evento_id: int, db: Session = Depends(get_db)):
     return obtener_no_disponibles(db, evento_id)
+
+
+@router.put("/cancelar-entrada/{id}", response_model=EntradaResponse)
+def cancelar_entrada(id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    try:
+        return cancelar_entrada_usuario(db, id, user["id"])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

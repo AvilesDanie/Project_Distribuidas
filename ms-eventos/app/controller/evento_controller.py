@@ -67,6 +67,11 @@ def obtener_categorias(db: Session = Depends(get_db)):
     return evento_service.obtener_categorias(db)
 
 
+@router.put("/cancelar-evento/{id}")
+def cancelar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    return evento_service.cancelar_evento(db, id)
+
+
 @router.get("/buscar-eventos", response_model=List[EventoOutDTO])
 def buscar_eventos(
     categoria: str = "",

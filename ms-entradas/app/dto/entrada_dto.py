@@ -6,6 +6,8 @@ class EntradaResponse(BaseModel):
     codigo: str
     evento_id: int
     usuario_id: Optional[int]
+    precio: float
+    evento_nombre: Optional[str] = None
 
     class Config:
         from_attributes = True
