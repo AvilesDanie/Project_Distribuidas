@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encuentro - Demo Visual</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            200: '#f5d0fe',
+                            300: '#f0abfc',
+                            400: '#e879f9',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            900: '#701a75',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #0ea5e9, #d946ef);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 fixed w-full top-0 z-50">
+        <div class="px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold gradient-bg bg-clip-text text-transparent">
+                        Encuentro
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 text-gray-400 hover:text-gray-600 relative">
+                        🔔
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                    </button>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900">Demo Usuario</p>
+                            <p class="text-xs text-gray-500">Usuario</p>
+                        </div>
+                        <div class="bg-primary-600 w-10 h-10 rounded-full flex items-center justify-center">
+                            👤
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex pt-16">
+        <!-- Sidebar -->
+        <aside class="fixed left-0 top-16 h-full w-64 bg-white shadow-sm border-r border-gray-200 overflow-y-auto">
+            <div class="p-6">
+                <nav class="space-y-2">
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg bg-primary-100 text-primary-700 border-r-2 border-primary-600">
+                        🏠 <span class="font-medium">Dashboard</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100">
+                        📅 <span class="font-medium">Eventos</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100">
+                        🎫 <span class="font-medium">Mis Entradas</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100">
+                        👤 <span class="font-medium">Perfil</span>
+                    </a>
+                    
+                    <div class="pt-6 pb-2">
+                        <h3 class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Administración
+                        </h3>
+                    </div>
+                    <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100">
+                        🛡️ <span class="font-medium">Panel Admin</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 ml-64">
+            <!-- Header -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">
+                            ¡Hola, Demo Usuario! 👋
+                        </h1>
+                        <p class="text-gray-600 mt-1">
+                            Descubre eventos increíbles y gestiona tus entradas
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-500">Rol</p>
+                        <span class="inline-block px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            Usuario
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 p-3 rounded-lg">
+                            📅
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Eventos Disponibles</p>
+                            <p class="text-2xl font-bold text-gray-900">24</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center">
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            🎫
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Mis Entradas</p>
+                            <p class="text-2xl font-bold text-gray-900">3</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center">
+                        <div class="bg-purple-100 p-3 rounded-lg">
+                            📈
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Categorías</p>
+                            <p class="text-2xl font-bold text-gray-900">12+</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center">
+                        <div class="bg-yellow-100 p-3 rounded-lg">
+                            ⭐
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Experiencias</p>
+                            <p class="text-2xl font-bold text-gray-900">Premium</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Próximos Eventos -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">Próximos Eventos</h2>
+                        <a href="#" class="text-primary-600 hover:text-primary-700 font-medium text-sm">
+                            Ver todos →
+                        </a>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                            <div class="bg-primary-100 p-3 rounded-lg">
+                                🎵
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">Concierto Rock 2024</h3>
+                                <p class="text-sm text-gray-500">2024-08-21</p>
+                                <p class="text-sm text-primary-600">$50</p>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                presencial
+                            </span>
+                        </div>
+
+                        <div class="flex items-center space-x-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                            <div class="bg-primary-100 p-3 rounded-lg">
+                                🎭
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">Teatro Musical</h3>
+                                <p class="text-sm text-gray-500">2024-08-23</p>
+                                <p class="text-sm text-primary-600">$80</p>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                virtual
+                            </span>
+                        </div>
+
+                        <div class="flex items-center space-x-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                            <div class="bg-primary-100 p-3 rounded-lg">
+                                🍕
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">Festival Gastronómico</h3>
+                                <p class="text-sm text-gray-500">2024-08-25</p>
+                                <p class="text-sm text-primary-600">$30</p>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                presencial
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mis Entradas Recientes -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">Mis Entradas</h2>
+                        <a href="#" class="text-primary-600 hover:text-primary-700 font-medium text-sm">
+                            Ver todas →
+                        </a>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                🎫
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">Concierto Jazz Night</h3>
+                                <p class="text-sm text-gray-500">Código: A1B2C3</p>
+                                <p class="text-sm text-green-600">$45</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                🎫
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">Exposición de Arte</h3>
+                                <p class="text-sm text-gray-500">Código: D4E5F6</p>
+                                <p class="text-sm text-green-600">$25</p>
+                            </div>
+                        </div>
+
+                        <div class="text-center py-4">
+                            <p class="text-gray-500 mb-4">
+                                ¡Explora más eventos disponibles!
+                            </p>
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-medium">
+                                Ver catálogo completo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Info -->
+            <div class="mt-8 bg-blue-50 rounded-xl p-6">
+                <h3 class="font-semibold text-blue-900 mb-3">🎨 Frontend Demo - Encuentro</h3>
+                <div class="space-y-2 text-sm text-blue-800">
+                    <p>• <strong>Tecnologías:</strong> React 18 + TypeScript + Tailwind CSS</p>
+                    <p>• <strong>Backend API:</strong> Microservicios corriendo en http://localhost/api/v1</p>
+                    <p>• <strong>Estado:</strong> Demo visual - Para funcionalidad completa instalar Node.js</p>
+                    <p>• <strong>Diseño:</strong> Responsive, moderno y optimizado para UX</p>
+                </div>
+                <div class="mt-4 space-x-4">
+                    <button class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Explorar Eventos
+                    </button>
+                    <button class="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors">
+                        Panel Admin
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
