@@ -7,8 +7,10 @@ def publish_user_created(user_id: int):
         "tipo": "usuario_creado",
         "payload": {
             "usuario_id": user_id,
-            "mensaje": "Un nuevo usuario ha sido creado.",
-            "tipo": "INFO"
+            "titulo": "Bienvenido!",
+            "mensaje": "Te has registrado exitosamente en la plataforma.",
+            "tipo": "success"
         }
     }
     publish_message(json.dumps(event), settings.RABBITMQ_NOTIF_QUEUE)
+    print(f"✅ Notificación de usuario creado enviada: {user_id}")

@@ -25,6 +25,14 @@ const DashboardPage: React.FC = () => {
   const upcomingEvents = events?.slice(0, 4) || [];
   const recentTickets = myTickets?.slice(0, 3) || [];
 
+  const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -216,15 +224,27 @@ const DashboardPage: React.FC = () => {
                 recentTickets.map((ticket) => (
                   <div
                     key={ticket.id}
-                    className="flex items-center space-x-4 p-4 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                    className="group relative overflow-hidden bg-gradient-to-r from-gray-700 to-gray-600 rounded-xl p-4 border border-gray-600 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
                   >
-                    <div className="bg-green-600 p-3 rounded-lg">
-                      <Ticket className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-white">{ticket.evento_nombre}</h3>
-                      <p className="text-sm text-gray-400">Código: {ticket.codigo}</p>
-                      <p className="text-sm text-green-400">${ticket.precio}</p>
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-5 rounded-full -translate-y-10 translate-x-10"></div>
+                    
+                    <div className="relative flex items-center space-x-4">
+                      <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+                        <Ticket className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white mb-1">{ticket.evento_nombre}</h3>
+                        <div className="flex items-center space-x-3 text-sm">
+                          <span className="text-gray-300">#{ticket.codigo}</span>
+                          <span className="px-2 py-1 bg-green-500 bg-opacity-20 text-green-300 rounded-full text-xs font-medium">
+                            {ticket.estado || 'activa'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-white">{formatPrice(ticket.precio)}</p>
+                        <p className="text-xs text-gray-300">Comprada</p>
+                      </div>
                     </div>
                   </div>
                 ))

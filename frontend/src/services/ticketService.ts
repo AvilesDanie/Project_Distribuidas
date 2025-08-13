@@ -27,11 +27,11 @@ export const ticketService = {
     return response.data;
   },
 
-  // Esta función será implementada cuando se agregue la funcionalidad de compra
   async purchaseTicket(purchaseData: PurchaseTicketRequest): Promise<void> {
-    // TODO: Implementar cuando esté disponible en el backend
-    console.log('Función de compra pendiente de implementación', purchaseData);
-    throw new Error('Funcionalidad de compra no implementada aún');
+    const response = await api.put(`/entradas/entradas/comprar-entrada-evento/${purchaseData.evento_id}`, {
+      cantidad: purchaseData.cantidad
+    });
+    return response.data;
   },
 
   async getAllTickets(): Promise<Ticket[]> {
@@ -46,6 +46,19 @@ export const ticketService = {
 
   async getTicketSales(): Promise<any[]> {
     const response = await api.get('/entradas/entradas/estadisticas-ventas');
+    return response.data;
+  },
+
+  async cancelTicket(ticketId: number): Promise<void> {
+    const response = await api.put(`/entradas/entradas/cancelar/${ticketId}`);
+    return response.data;
+  },
+
+  async purchaseTickets(eventoId: number, entradas: any[]): Promise<any> {
+    const response = await api.post('/entradas/entradas/comprar', {
+      evento_id: eventoId,
+      entradas: entradas
+    });
     return response.data;
   }
 };

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Plus, Edit, Trash2, Eye, Calendar, CheckCircle, XCircle, Upload, Image } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Calendar, CheckCircle, XCircle, Upload } from 'lucide-react';
 import { eventService } from '../../services/eventService';
+import { uploadService } from '../../services/uploadService';
+import { getImageUrl } from '../../utils/imageUtils';
+import { formatDateForInput, formatDateForBackend } from '../../utils/dateUtils';
 
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import Swal from 'sweetalert2';
@@ -71,7 +74,7 @@ const EventsTable: React.FC<TableProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   {event.imagen_url ? (
                     <img 
-                      src={event.imagen_url} 
+                      src={getImageUrl(event.imagen_url) || event.imagen_url} 
                       alt={event.titulo}
                       className="w-12 h-12 rounded-lg object-cover"
                       onError={(e) => {
@@ -106,17 +109,17 @@ const EventsTable: React.FC<TableProps> = ({
                       <Edit className="w-4 h-4" />
                     </button>
                     {event.estado === 'NO_PUBLICADO' && (
-                      <button onClick={() => onPublish(event.id)} className="btn-success">
+                      <button onClick={() => onPublish(Number(event.id))} className="btn-success">
                         <CheckCircle className="w-4 h-4" />
                       </button>
                     )}
                     {event.estado === 'PUBLICADO' && (
-                      <button onClick={() => onCancel(event.id)} className="btn-warning">
+                      <button onClick={() => onCancel(Number(event.id))} className="btn-warning">
                         <XCircle className="w-4 h-4" />
                       </button>
                     )}
                     {event.estado !== 'PUBLICADO' && (
-                      <button onClick={() => onDelete(event.id)} className="btn-danger">
+                      <button onClick={() => onDelete(Number(event.id))} className="btn-danger">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
@@ -150,6 +153,9 @@ const AdminEventsPage: React.FC = () => {
     precio: 0,
     imagen_url: ''
   });
+
+  // Variables para controlar el estado de loading
+  const uploading = uploadingImage;
 
   // Función helper para resetear el formulario
   const resetForm = () => {
@@ -292,6 +298,40 @@ const AdminEventsPage: React.FC = () => {
     }
   });
 
+  const updateEventMutation = useMutation(
+    ({ id, data }: { id: number, data: any }) => eventService.updateEvent(id, data), 
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['all-events']);
+        setRefreshKey(prev => prev + 1);
+        refetch();
+        setEditingEvent(null);
+        resetForm();
+        
+        Swal.fire({
+          title: '¡Actualizado!',
+          text: 'El evento ha sido actualizado exitosamente',
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+          background: '#1f2937',
+          color: '#fff',
+          confirmButtonColor: '#10b981',
+        });
+      },
+      onError: (error: any) => {
+        Swal.fire({
+          title: '¡Error!',
+          text: error.message || 'No se pudo actualizar el evento',
+          icon: 'error',
+          confirmButtonText: 'Aceptar',
+          background: '#1f2937',
+          color: '#fff',
+          confirmButtonColor: '#ef4444',
+        });
+      }
+    }
+  );
+
   const handlePublishEvent = async (eventId: number) => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
@@ -400,6 +440,7 @@ const AdminEventsPage: React.FC = () => {
     try {
       const eventData: CreateEventRequest = {
         ...formData,
+        fecha: formatDateForBackend(formData.fecha),
       };
       await createEventMutation.mutateAsync(eventData);
     } catch (error) {
@@ -473,6 +514,97 @@ const AdminEventsPage: React.FC = () => {
       setUploadingImage(false);
     }
   };
+
+  // Función para llenar el formulario cuando se edita un evento
+  const populateEditForm = (event: Event) => {
+    setFormData({
+      titulo: event.titulo,
+      descripcion: event.descripcion,
+      fecha: formatDateForInput(event.fecha),
+      categoria: event.categoria,
+      tipo: event.tipo,
+      aforo: event.aforo,
+      precio: event.precio,
+      imagen_url: event.imagen_url || ''
+    });
+  };
+
+  // Función para manejar la actualización del evento
+  const handleUpdateEvent = async () => {
+    if (!editingEvent) return;
+    
+    try {
+      const eventData = {
+        ...formData,
+        fecha: formatDateForBackend(formData.fecha),
+        precio: typeof formData.precio === 'string' ? parseFloat(formData.precio) : formData.precio,
+        aforo: typeof formData.aforo === 'string' ? parseInt(formData.aforo) : formData.aforo
+      };
+      await updateEventMutation.mutateAsync({ id: Number(editingEvent.id), data: eventData });
+    } catch (error) {
+      console.error('Error updating event:', error);
+    }
+  };
+
+  // Función para manejar el cambio de imagen en edición
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validaciones similares a handleImageUpload
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'Por favor selecciona un archivo de imagen válido',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'La imagen es muy grande. Máximo 5MB',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    
+    try {
+      const imageUrl = await uploadService.uploadImage(file);
+      setFormData({...formData, imagen_url: imageUrl});
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Swal.fire({
+        title: '¡Error!',
+        text: 'No se pudo subir la imagen al servidor',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Efecto para llenar el formulario cuando se selecciona un evento para editar
+  React.useEffect(() => {
+    if (editingEvent) {
+      populateEditForm(editingEvent);
+    }
+  }, [editingEvent]);
 
   const filteredEvents = React.useMemo(() => {
     if (!events) return [];
@@ -705,7 +837,7 @@ const AdminEventsPage: React.FC = () => {
                       </div>
                       <div className="relative inline-block">
                         <img 
-                          src={formData.imagen_url} 
+                          src={getImageUrl(formData.imagen_url) || formData.imagen_url} 
                           alt="Vista previa del evento" 
                           className="w-full max-w-md h-48 object-cover rounded-lg border-2 border-gray-600 shadow-lg"
                           onError={(e) => {
@@ -843,23 +975,194 @@ const AdminEventsPage: React.FC = () => {
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-2xl font-bold text-white">Editar Evento</h2>
               <button
-                onClick={() => setEditingEvent(null)}
+                onClick={() => {
+                  setEditingEvent(null);
+                  resetForm();
+                }}
                 className="text-gray-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
             
-            <div className="space-y-4 text-white">
-              <p>Funcionalidad de edición en desarrollo</p>
-              <p>Evento: {editingEvent.titulo}</p>
-              <button
-                onClick={() => setEditingEvent(null)}
-                className="btn-secondary"
-              >
-                Cerrar
-              </button>
-            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdateEvent();
+            }} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="edit-titulo" className="block text-sm font-medium text-gray-300 mb-2">
+                    Título
+                  </label>
+                  <input
+                    type="text"
+                    id="edit-titulo"
+                    value={formData.titulo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nombre del evento"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-categoria" className="block text-sm font-medium text-gray-300 mb-2">
+                    Categoría
+                  </label>
+                  <select
+                    id="edit-categoria"
+                    value={formData.categoria}
+                    onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    <option value="Concierto">Concierto</option>
+                    <option value="Teatro">Teatro</option>
+                    <option value="Deportes">Deportes</option>
+                    <option value="Conferencia">Conferencia</option>
+                    <option value="Festival">Festival</option>
+                    <option value="Exposición">Exposición</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="edit-fecha" className="block text-sm font-medium text-gray-300 mb-2">
+                    Fecha y Hora
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="edit-fecha"
+                    value={formData.fecha}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-tipo" className="block text-sm font-medium text-gray-300 mb-2">
+                    Tipo
+                  </label>
+                  <select
+                    id="edit-tipo"
+                    value={formData.tipo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tipo: e.target.value as 'presencial' | 'virtual' }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="presencial">Presencial</option>
+                    <option value="virtual">Virtual</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="edit-aforo" className="block text-sm font-medium text-gray-300 mb-2">
+                    Aforo
+                  </label>
+                  <input
+                    type="number"
+                    id="edit-aforo"
+                    min="1"
+                    value={formData.aforo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, aforo: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Número de asistentes"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-precio" className="block text-sm font-medium text-gray-300 mb-2">
+                    Precio (COP)
+                  </label>
+                  <input
+                    type="number"
+                    id="edit-precio"
+                    min="0"
+                    step="0.01"
+                    value={formData.precio}
+                    onChange={(e) => setFormData(prev => ({ ...prev, precio: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0 para evento gratuito"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="edit-descripcion" className="block text-sm font-medium text-gray-300 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  id="edit-descripcion"
+                  rows={4}
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe tu evento..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Imagen del evento
+                </label>
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors">
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploading ? 'Subiendo...' : 'Cambiar imagen'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                  </label>
+                  {(formData.imagen_url || editingEvent.imagen_url) && (
+                    <div className="relative">
+                      <img 
+                        src={getImageUrl(formData.imagen_url || editingEvent.imagen_url) || formData.imagen_url || editingEvent.imagen_url} 
+                        alt="Preview" 
+                        className="w-16 h-16 object-cover rounded-lg"
+                        onError={(e) => {
+                          console.log('Error cargando imagen:', formData.imagen_url || editingEvent.imagen_url);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEvent(null);
+                    resetForm();
+                  }}
+                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateEventMutation.isLoading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center"
+                >
+                  {updateEventMutation.isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Actualizando...
+                    </>
+                  ) : (
+                    'Actualizar Evento'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -884,7 +1187,7 @@ const AdminEventsPage: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-2">Imagen</h3>
                   <img 
-                    src={selectedEvent.imagen_url} 
+                    src={getImageUrl(selectedEvent.imagen_url) || selectedEvent.imagen_url} 
                     alt={selectedEvent.titulo}
                     className="w-full h-64 object-cover rounded-lg border border-gray-600"
                     onError={(e) => {

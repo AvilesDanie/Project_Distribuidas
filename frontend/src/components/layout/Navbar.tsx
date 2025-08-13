@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Bell, User, LogOut, Settings, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from 'react-query';
+import { notificationService } from '../../services/notificationService';
 
 export const Navbar: React.FC = () => {
   const { state, logout } = useAuth();
@@ -9,9 +11,35 @@ export const Navbar: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
+  // Obtener notificaciones del usuario
+  const { data: notifications = [] } = useQuery(
+    ['user-notifications'],
+    () => notificationService.getMyNotifications(),
+    {
+      enabled: !!state.user,
+      refetchInterval: 3000, // Refrescar cada 3 segundos para ser imperceptible
+      refetchIntervalInBackground: true, // Continuar refrescando en background
+    }
+  );
+
+  const unreadCount = notifications.filter(n => !n.leida).length;
+
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const formatNotificationTime = (dateString: string): string => {
+    const now = new Date();
+    const notificationDate = new Date(dateString);
+    const diffMs = now.getTime() - notificationDate.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) return 'Hace unos minutos';
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    if (diffDays < 7) return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+    return notificationDate.toLocaleDateString();
   };
 
   return (
@@ -54,33 +82,64 @@ export const Navbar: React.FC = () => {
                 className="p-2 text-gray-400 hover:text-white transition-colors relative"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  3
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Dropdown de notificaciones */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
                   <div className="p-4">
-                    <h3 className="text-white font-semibold mb-3">Notificaciones</h3>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-white text-sm">Nuevo evento disponible: "Concierto de Jazz"</p>
-                        <p className="text-gray-400 text-xs mt-1">Hace 2 horas</p>
-                      </div>
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-white text-sm">Tu entrada para "Teatro Musical" ha sido confirmada</p>
-                        <p className="text-gray-400 text-xs mt-1">Hace 1 día</p>
-                      </div>
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-white text-sm">Recordatorio: Evento mañana a las 19:00</p>
-                        <p className="text-gray-400 text-xs mt-1">Hace 2 días</p>
-                      </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-white font-semibold">Notificaciones</h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => notificationService.markAllAsRead()}
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                          Marcar todas como leídas
+                        </button>
+                      )}
                     </div>
-                    <button className="w-full mt-3 text-blue-400 hover:text-blue-300 text-sm">
-                      Ver todas las notificaciones
-                    </button>
+                    
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.slice(0, 5).map((notification: any) => (
+                          <div key={notification.id} className={`p-3 rounded-lg ${
+                            notification.leida ? 'bg-gray-700' : 'bg-blue-900/30 border border-blue-700'
+                          }`}>
+                            <p className="text-white text-sm">{notification.mensaje}</p>
+                            <p className="text-gray-400 text-xs mt-1">
+                              {formatNotificationTime(notification.fecha_creacion)}
+                            </p>
+                            {!notification.leida && (
+                              <button
+                                onClick={() => notificationService.markAsRead(notification.id)}
+                                className="text-xs text-blue-400 hover:text-blue-300 mt-1"
+                              >
+                                Marcar como leída
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-center text-gray-400">
+                          <p className="text-sm">No tienes notificaciones</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {notifications.length > 5 && (
+                      <button 
+                        onClick={() => navigate('/notifications')}
+                        className="w-full mt-3 text-blue-400 hover:text-blue-300 text-sm"
+                      >
+                        Ver todas las notificaciones ({notifications.length})
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

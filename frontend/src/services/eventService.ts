@@ -10,12 +10,16 @@ import {
 
 export const eventService = {
   async createEvent(eventData: CreateEventRequest): Promise<Event> {
+    console.log('🔍 Frontend createEvent called with:', eventData);
     const response = await api.post('/eventos/eventos/post-evento', eventData);
+    console.log('✅ Create response:', response.data);
     return response.data;
   },
 
   async getPublishedEvents(): Promise<Event[]> {
+    console.log('🔍 Frontend: Solicitando eventos publicados...');
     const response = await api.get('/eventos/eventos/get-eventospublicados');
+    console.log('✅ Frontend: Eventos publicados recibidos:', response.data);
     return response.data;
   },
 
@@ -27,12 +31,12 @@ export const eventService = {
     return response.data;
   },
 
-  async getPublishedEventById(id: number): Promise<Event> {
+  async getPublishedEventById(id: number | string): Promise<Event> {
     const response = await api.get(`/eventos/eventos/get-eventopublicado/${id}`);
     return response.data;
   },
 
-  async getEventById(id: number): Promise<Event> {
+  async getEventById(id: number | string): Promise<Event> {
     const response = await api.get(`/eventos/eventos/get-evento/${id}`);
     return response.data;
   },
@@ -56,18 +60,21 @@ export const eventService = {
     return response.data;
   },
 
-  async getSales(eventoId?: number): Promise<EventSales[]> {
+  async getSales(eventoId?: number | string): Promise<EventSales[]> {
     const params = eventoId ? `?evento_id=${eventoId}` : '';
     const response = await api.get(`/eventos/eventos/ventas${params}`);
     return response.data;
   },
 
-  async updateEvent(id: number, eventData: UpdateEventRequest): Promise<Event> {
+  async updateEvent(id: number | string, eventData: UpdateEventRequest): Promise<Event> {
+    console.log('🔍 Frontend updateEvent called with:', { id, eventData });
+    console.log('🔍 ID type:', typeof id, 'ID value:', id);
     const response = await api.put(`/eventos/eventos/update-evento/${id}`, eventData);
+    console.log('✅ Update response:', response.data);
     return response.data;
   },
 
-  async deleteEvent(id: number): Promise<void> {
+  async deleteEvent(id: number | string): Promise<void> {
     try {
       await api.delete(`/eventos/eventos/delete-evento/${id}`);
     } catch (error: any) {
@@ -88,7 +95,7 @@ export const eventService = {
     }
   },
 
-  async publishEvent(id: number): Promise<Event> {
+  async publishEvent(id: number | string): Promise<Event> {
     try {
       const response = await api.put(`/eventos/eventos/publicar-evento/${id}`);
       
@@ -117,7 +124,7 @@ export const eventService = {
     }
   },
 
-  async cancelEvent(id: number): Promise<Event> {
+  async cancelEvent(id: number | string): Promise<Event> {
     try {
       const response = await api.put(`/eventos/eventos/cancelar-evento/${id}`);
       
@@ -142,5 +149,10 @@ export const eventService = {
       
       throw new Error('Error de conexión al cancelar el evento');
     }
+  },
+
+  // Alias para compatibilidad
+  async getById(id: number | string): Promise<Event> {
+    return this.getEventById(id);
   }
 };

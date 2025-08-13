@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Users, DollarSign } from 'lucide-react';
 import { eventService } from '../services/eventService';
+import { getImageUrl } from '../utils/imageUtils';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Event } from '../types/events';
 
@@ -9,6 +11,7 @@ const EventsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const navigate = useNavigate();
 
   const { data: events, isLoading } = useQuery(
     'published-events',
@@ -29,59 +32,81 @@ const EventsPage: React.FC = () => {
     return matchesSearch && matchesCategory && matchesType;
   }) || [];
 
-  const EventCard: React.FC<{ event: Event }> = ({ event }) => (
-    <div className="bg-[#1f2937] rounded-xl shadow-md border border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="h-48 bg-gradient-to-br from-indigo-600 to-purple-600 relative">
-        <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-        <div className="absolute top-4 left-4">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            event.tipo === 'presencial' 
-              ? 'bg-emerald-500 text-white' 
-              : 'bg-sky-500 text-white'
-          }`}>
-            {event.tipo}
-          </span>
-        </div>
-        <div className="absolute bottom-4 left-4 text-white">
-          <h3 className="text-xl font-bold">{event.titulo}</h3>
-        </div>
-      </div>
-      
-      <div className="p-6">
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center text-gray-300">
-            <Calendar className="w-4 h-4 mr-2" />
-            <span className="text-sm">{new Date(event.fecha).toLocaleDateString('es-ES')}</span>
+  const EventCard: React.FC<{ event: Event }> = ({ event }) => {
+    const imageUrl = event.imagen_url ? getImageUrl(event.imagen_url) : null;
+
+    const handleViewDetails = () => {
+      navigate(`/events/${event.id}/entries`);
+    };
+
+    return (
+      <div className="bg-[#1f2937] rounded-xl shadow-md border border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
+        <div className="h-48 bg-gradient-to-br from-indigo-600 to-purple-600 relative">
+          {event.imagen_url && imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={event.titulo}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // En caso de error, mostrar el gradiente por defecto
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+          <div className="absolute top-4 left-4">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              event.tipo === 'presencial' 
+                ? 'bg-emerald-500 text-white' 
+                : 'bg-sky-500 text-white'
+            }`}>
+              {event.tipo}
+            </span>
           </div>
-          
-          <div className="flex items-center text-gray-300">
-            <Users className="w-4 h-4 mr-2" />
-            <span className="text-sm">Aforo: {event.aforo} personas</span>
-          </div>
-          
-          <div className="flex items-center text-gray-300">
-            <MapPin className="w-4 h-4 mr-2" />
-            <span className="text-sm capitalize">{event.categoria}</span>
+          <div className="absolute bottom-4 left-4 text-white">
+            <h3 className="text-xl font-bold">{event.titulo}</h3>
           </div>
         </div>
         
-        <p className="text-gray-300 text-sm mb-4 line-clamp-2">
-          {event.descripcion}
-        </p>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center text-indigo-400">
-            <DollarSign className="w-4 h-4 mr-1" />
-            <span className="text-lg font-bold">{event.precio}</span>
+        <div className="p-6">
+          <div className="space-y-3 mb-4">
+            <div className="flex items-center text-gray-300">
+              <Calendar className="w-4 h-4 mr-2" />
+              <span className="text-sm">{new Date(event.fecha).toLocaleDateString('es-ES')}</span>
+            </div>
+            
+            <div className="flex items-center text-gray-300">
+              <Users className="w-4 h-4 mr-2" />
+              <span className="text-sm">Aforo: {event.aforo} personas</span>
+            </div>
+            
+            <div className="flex items-center text-gray-300">
+              <MapPin className="w-4 h-4 mr-2" />
+              <span className="text-sm capitalize">{event.categoria}</span>
+            </div>
           </div>
           
-          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
-            Ver Detalles
-          </button>
+          <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+            {event.descripcion}
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center text-indigo-400">
+              <DollarSign className="w-4 h-4 mr-1" />
+              <span className="text-lg font-bold">{event.precio}</span>
+            </div>
+            
+            <button 
+              onClick={handleViewDetails}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Ver Detalles
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">

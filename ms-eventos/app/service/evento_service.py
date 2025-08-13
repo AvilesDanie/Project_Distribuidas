@@ -22,25 +22,37 @@ def actualizar_evento(db: Session, id: int, data: EventoUpdateDTO):
     return evento_repository.actualizar_evento(db, id, data)
 
 def desactivar_evento(db: Session, id: int):
-    return evento_repository.cambiar_estado(db, id, "DESACTIVADO")
+    return evento_repository.cambiar_estado(db, id, "CANCELADO")
 
 def publicar_evento(db: Session, id: int):
+    print(f"🔍 Intentando publicar evento con ID: {id}")
     # Primero verificar si el evento existe
     evento_existente = evento_repository.obtener_por_id(db, id)
     if not evento_existente:
+        print(f"❌ Evento con ID {id} no existe")
         return None
-    
-    # Verificar si ya está publicado
+
+    print(f"🔍 Estado actual del evento: {evento_existente.estado}")
+
+    # Si ya está publicado, devolver el evento (no es error)
     if evento_existente.estado == "PUBLICADO":
-        return None  # Ya está publicado
-    
+        print(f"✅ Evento {id} ya está publicado")
+        return evento_existente  # Ya está publicado, devolver el evento
+
     # Solo publicar si está en estado NO_PUBLICADO
     if evento_existente.estado != "NO_PUBLICADO":
-        return None  # No se puede publicar desde otros estados
-    
+        print(f"❌ No se puede publicar evento {id}. Estado actual: {evento_existente.estado}")
+        return None  # No se puede publicar desde este estado
+
+    print(f"🔄 Cambiando estado a PUBLICADO...")
     evento = evento_repository.cambiar_estado(db, id, "PUBLICADO")
     if evento:
-        publicar_evento_creado(evento.id, evento.aforo, evento.titulo, evento.precio)
+        print(f"✅ Evento {id} publicado exitosamente")
+        # Notificar evento creado/publicado
+        try:
+            publicar_evento_creado(evento.id, evento.aforo, evento.titulo, evento.precio)
+        except Exception as e:
+            print(f"⚠️ Error al notificar evento publicado: {e}")
     return evento
 
 def finalizar_evento(db: Session, id: int):
@@ -73,7 +85,7 @@ def buscar_eventos(db: Session, categoria: str, tipo: str, fecha: str, palabra: 
     return query.all()
 
 def obtener_estadisticas(db: Session):
-    estados = ["NO_PUBLICADO", "PUBLICADO", "FINALIZADO", "DESACTIVADO"]
+    estados = ["NO_PUBLICADO", "PUBLICADO", "FINALIZADO", "CANCELADO"]
     conteos = db.query(Evento.estado, func.count()).group_by(Evento.estado).all()
     resultado = {estado: 0 for estado in estados}
     for estado, cantidad in conteos:
@@ -85,4 +97,34 @@ def cancelar_evento(db: Session, id: int):
     if evento:
         publicar_evento_cancelado(evento.id)
     return evento
+
+def obtener_estadisticas_eventos(db: Session):
+    """Obtener estadísticas generales de eventos"""
+    from sqlalchemy import func
+    from app.model.evento_model import Evento
+    
+    # Contar eventos por estado
+    estadisticas = db.query(
+        Evento.estado,
+        func.count(Evento.id).label('count')
+    ).group_by(Evento.estado).all()
+    
+    # Formatear resultado
+    resultado = {
+        "total_eventos": 0,
+        "eventos_publicados": 0,
+        "eventos_borradores": 0,
+        "eventos_finalizados": 0
+    }
+    
+    for estado, count in estadisticas:
+        resultado["total_eventos"] += count
+        if estado == "PUBLICADO":
+            resultado["eventos_publicados"] = count
+        elif estado == "NO_PUBLICADO":
+            resultado["eventos_borradores"] = count
+        elif estado == "FINALIZADO":
+            resultado["eventos_finalizados"] = count
+    
+    return resultado
 

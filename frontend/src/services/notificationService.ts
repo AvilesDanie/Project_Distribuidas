@@ -51,7 +51,7 @@ export const notificationService = {
   },
 
   async getAllNotifications(): Promise<Notification[]> {
-    const response = await api.get('/notificaciones/notificaciones/todas');
+    const response = await api.get('/notificaciones/todas');
     return response.data;
   }
 };

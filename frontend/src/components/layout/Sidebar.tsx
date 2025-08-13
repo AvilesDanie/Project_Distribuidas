@@ -30,6 +30,7 @@ export const Sidebar: React.FC = () => {
   const adminMenuItems = [
     { icon: Shield, label: 'Panel Admin', path: '/admin' },
     { icon: Calendar, label: 'Gestión Eventos', path: '/admin/events' },
+    { icon: Ticket, label: 'Gestión Entradas', path: '/admin/entries' },
     { icon: Users, label: 'Usuarios', path: '/admin/users' },
     { icon: BarChart3, label: 'Estadísticas', path: '/admin/stats' },
     { icon: Settings, label: 'Configuración', path: '/admin/settings' },

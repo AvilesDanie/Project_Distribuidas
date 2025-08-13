@@ -1,5 +1,5 @@
 export interface Event {
-  id: number;
+  id: number | string;  // Permitir tanto number como string para compatibilidad
   titulo: string;
   descripcion: string;
   fecha: string;

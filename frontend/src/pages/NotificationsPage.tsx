@@ -1,59 +1,65 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Bell, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  read: boolean;
-  created_at: string;
-}
+import { notificationService, Notification } from '../services/notificationService';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 const NotificationsPage: React.FC = () => {
-  // Simulamos datos de notificaciones ya que el endpoint real no está implementado
-  const mockNotifications: Notification[] = [
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const queryClient = useQueryClient();
+
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>(
+    ['user-notifications'],
+    () => notificationService.getMyNotifications(),
     {
-      id: 1,
-      title: 'Nuevo evento disponible',
-      message: 'Se ha publicado un nuevo evento: "Concierto de Jazz en el Teatro Principal"',
-      type: 'info',
-      read: false,
-      created_at: '2025-08-11T10:30:00Z'
-    },
-    {
-      id: 2,
-      title: 'Entrada confirmada',
-      message: 'Tu entrada para "Teatro Musical" ha sido confirmada exitosamente',
-      type: 'success',
-      read: false,
-      created_at: '2025-08-10T15:45:00Z'
-    },
-    {
-      id: 3,
-      title: 'Recordatorio de evento',
-      message: 'Tu evento "Festival Gastronómico" comenzará mañana a las 19:00',
-      type: 'warning',
-      read: true,
-      created_at: '2025-08-09T09:00:00Z'
-    },
-    {
-      id: 4,
-      title: 'Actualización de perfil',
-      message: 'Tu información de perfil ha sido actualizada correctamente',
-      type: 'success',
-      read: true,
-      created_at: '2025-08-08T14:20:00Z'
-    },
-    {
-      id: 5,
-      title: 'Evento cancelado',
-      message: 'El evento "Concierto al aire libre" ha sido cancelado debido al clima',
-      type: 'error',
-      read: true,
-      created_at: '2025-08-07T11:15:00Z'
+      refetchInterval: 3000, // Actualizar cada 3 segundos para ser imperceptible
+      refetchIntervalInBackground: true, // Continuar refrescando en background
     }
-  ];
+  );
+
+  const markAsReadMutation = useMutation(
+    (id: number) => notificationService.markAsRead(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['user-notifications']);
+      }
+    }
+  );
+
+  const markAllAsReadMutation = useMutation(
+    () => notificationService.markAllAsRead(),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['user-notifications']);
+      }
+    }
+  );
+
+  const deleteNotificationMutation = useMutation(
+    (id: number) => notificationService.deleteNotification(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['user-notifications']);
+      }
+    }
+  );
+
+  const handleMarkAsRead = (id: number) => {
+    markAsReadMutation.mutate(id);
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsReadMutation.mutate();
+  };
+
+  const handleDeleteNotification = (id: number) => {
+    deleteNotificationMutation.mutate(id);
+  };
+
+  const filteredNotifications = notifications.filter(notification => {
+    if (filter === 'unread') return !notification.leida;
+    return true;
+  });
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -92,7 +98,15 @@ const NotificationsPage: React.FC = () => {
     });
   };
 
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.leida).length;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -120,55 +134,75 @@ const NotificationsPage: React.FC = () => {
       {/* Filtros */}
       <div className="bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-700">
         <div className="flex flex-wrap gap-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              filter === 'all' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
             Todas
           </button>
-          <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
+          <button 
+            onClick={() => setFilter('unread')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              filter === 'unread' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
             Sin leer
           </button>
-          <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
-            Importantes
-          </button>
-          <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
-            Eventos
+          <button 
+            onClick={handleMarkAllAsRead}
+            className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-600 transition-colors"
+          >
+            Marcar todas como leídas
           </button>
         </div>
       </div>
 
       {/* Lista de notificaciones */}
       <div className="space-y-4">
-        {mockNotifications.map((notification) => (
+        {filteredNotifications.map((notification) => (
           <div
             key={notification.id}
-            className={`bg-gray-800 rounded-xl p-6 shadow-lg border-l-4 border-gray-700 ${getNotificationBorder(notification.type)} ${
-              !notification.read ? 'bg-gray-750' : ''
+            className={`bg-gray-800 rounded-xl p-6 shadow-lg border-l-4 border-gray-700 ${getNotificationBorder(notification.tipo)} ${
+              !notification.leida ? 'bg-gray-750' : ''
             }`}
           >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 pt-1">
-                {getNotificationIcon(notification.type)}
+                {getNotificationIcon(notification.tipo)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className={`text-lg font-semibold ${!notification.read ? 'text-white' : 'text-gray-300'}`}>
-                    {notification.title}
-                    {!notification.read && (
+                  <h3 className={`text-lg font-semibold ${!notification.leida ? 'text-white' : 'text-gray-300'}`}>
+                    {notification.titulo}
+                    {!notification.leida && (
                       <span className="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
                     )}
                   </h3>
                   <span className="text-sm text-gray-400">
-                    {formatDate(notification.created_at)}
+                    {formatDate(notification.fecha_creacion)}
                   </span>
                 </div>
-                <p className={`mt-2 ${!notification.read ? 'text-gray-300' : 'text-gray-400'}`}>
-                  {notification.message}
+                <p className={`mt-2 ${!notification.leida ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {notification.mensaje}
                 </p>
-                {!notification.read && (
+                {!notification.leida && (
                   <div className="mt-4 flex space-x-3">
-                    <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button 
+                      onClick={() => handleMarkAsRead(notification.id)}
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
                       Marcar como leída
                     </button>
-                    <button className="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
+                    <button 
+                      onClick={() => handleDeleteNotification(notification.id)}
+                      className="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors"
+                    >
                       Eliminar
                     </button>
                   </div>

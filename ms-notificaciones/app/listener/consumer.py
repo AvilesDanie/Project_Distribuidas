@@ -16,14 +16,22 @@ def start_listener():
 
         # Función que se llama al recibir un mensaje
         def callback(ch, method, properties, body):
-            print("📥 Evento recibido:", body)
+            print("📥 Evento recibido:", body.decode())
             try:
                 payload = json.loads(body)
+                print(f"📥 Payload procesado: {payload}")
+                
                 db = SessionLocal()
                 procesar_evento_rabbit(db, payload)
                 db.close()
+                print("✅ Notificación procesada correctamente")
+                
+            except json.JSONDecodeError as e:
+                print(f"❌ Error decodificando JSON: {e}")
             except Exception as e:
-                print("❌ Error al procesar el evento:", e)
+                print(f"❌ Error al procesar el evento: {e}")
+                import traceback
+                traceback.print_exc()
 
         # Iniciar el consumo de mensajes
         channel.basic_consume(
@@ -32,7 +40,12 @@ def start_listener():
             auto_ack=True
         )
 
+        print("🔄 Iniciando consumo de mensajes...")
         channel.start_consuming()
 
     except pika.exceptions.AMQPConnectionError as e:
-        print("❌ Error de conexión con RabbitMQ:", e)
+        print(f"❌ Error de conexión con RabbitMQ: {e}")
+    except Exception as e:
+        print(f"❌ Error general en el listener: {e}")
+        import traceback
+        traceback.print_exc()

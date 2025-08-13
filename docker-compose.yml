@@ -31,6 +31,8 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq1:5672/
       - SECRET_KEY=supersecretkey123
       - RABBITMQ_QUEUE=eventos_queue
+    volumes:
+      - eventos_uploads:/app/uploads
     networks:
       - backend
 
@@ -79,6 +81,8 @@ services:
       - eventos
       - entradas
       - notificaciones
+    volumes:
+      - eventos_uploads:/var/www/uploads
     networks:
       - backend
 
@@ -172,6 +176,7 @@ volumes:
   cockroach1:
   cockroach2:
   cockroach3:
+  eventos_uploads:
 
 
 networks:

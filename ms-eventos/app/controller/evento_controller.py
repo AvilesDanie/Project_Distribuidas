@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.config.database import SessionLocal
 from app.dto.evento_dto import EventoCreateDTO, EventoUpdateDTO, EventoOutDTO
@@ -6,6 +7,9 @@ from app.service import evento_service
 from app.security.dependencies import get_current_user, require_admin
 from typing import List
 import httpx
+import os
+import uuid
+from pathlib import Path
 
 router = APIRouter()
 
@@ -54,8 +58,8 @@ def desactivar(id: int, db: Session = Depends(get_db), _: dict = Depends(require
 def publicar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
     evento = evento_service.publicar_evento(db, id)
     if not evento:
-        raise HTTPException(status_code=400, detail="No se puede publicar: el evento ya está publicado, no existe, o no está en estado borrador")
-    return evento
+        raise HTTPException(status_code=400, detail="No se puede publicar: el evento no existe o no está en estado NO_PUBLICADO")
+    return {"message": "Evento publicado exitosamente", "evento": evento}
 
 @router.put("/terminar-evento/{id}")
 def terminar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
@@ -92,29 +96,95 @@ def buscar_eventos(
     return evento_service.buscar_eventos(db, categoria, tipo, fecha, palabra)
 
 @router.get("/estadisticas")
-def estadisticas(db: Session = Depends(get_db)):
-    return evento_service.obtener_estadisticas(db)
+def obtener_estadisticas(db: Session = Depends(get_db)):
+    """Endpoint para obtener estadísticas de eventos"""
+    return evento_service.obtener_estadisticas_eventos(db)
 
 @router.get("/ventas")
-def ventas_por_evento(evento_id: int, request: Request):
+def ventas_por_evento(evento_id: int = None, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    """Obtener estadísticas de ventas de un evento específico o general"""
     try:
-        token = request.headers.get("authorization")
-        if not token:
-            raise HTTPException(status_code=401, detail="Token faltante")
-
-        response = httpx.get(
-            f"http://nginx/api/v1/entradas/entradas/get-nodisponibles/{evento_id}",
-            headers={"Authorization": token}
-        )
-
-        print("STATUS:", response.status_code)
-        print("BODY:", response.text)
-
-        if response.status_code == 200:
-            return {"evento_id": evento_id, "entradas_vendidas": len(response.json())}
+        # Si se proporciona evento_id, obtener ventas de ese evento específico
+        if evento_id:
+            response = httpx.get(
+                f"http://entradas:8000/entradas/get-nodisponibles/{evento_id}",
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                return {"evento_id": evento_id, "entradas_vendidas": len(response.json())}
+            else:
+                raise HTTPException(status_code=response.status_code, detail="Error al consultar entradas")
         else:
-            raise HTTPException(status_code=response.status_code, detail="Error al consultar entradas")
+            # Si no se proporciona evento_id, obtener estadísticas generales
+            response = httpx.get(
+                "http://entradas:8000/entradas/estadisticas-ventas",
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise HTTPException(status_code=response.status_code, detail="Error al consultar entradas")
 
     except httpx.RequestError as e:
         print("EXCEPTION:", str(e))
         raise HTTPException(status_code=503, detail="Servicio de entradas no disponible")
+
+@router.post("/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    """Endpoint para subir imágenes de eventos"""
+    try:
+        # Validar tipo de archivo
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+        
+        # Crear directorio si no existe
+        upload_dir = Path("uploads/images")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generar nombre único para el archivo
+        file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = upload_dir / unique_filename
+        
+        # Guardar archivo
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Retornar URL de la imagen
+        image_url = f"/uploads/images/{unique_filename}"
+        return {"image_url": image_url, "filename": unique_filename}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
+
+@router.get("/image/{filename}")
+async def get_image(filename: str):
+    """Endpoint para obtener imágenes de eventos"""
+    try:
+        # Verificar que el archivo existe
+        file_path = Path("uploads/images") / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Imagen no encontrada")
+        
+        # Determinar el tipo de contenido basado en la extensión
+        file_extension = filename.split('.')[-1].lower()
+        content_types = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp'
+        }
+        
+        content_type = content_types.get(file_extension, 'image/jpeg')
+        
+        # Leer y retornar el archivo
+        with open(file_path, "rb") as buffer:
+            return Response(content=buffer.read(), media_type=content_type)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener imagen: {str(e)}")

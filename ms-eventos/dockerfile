@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia el resto del código fuente
 COPY . .
 
+# Crea el directorio para uploads
+RUN mkdir -p uploads/images
+
 # Expone el puerto que uvicorn va a usar
 EXPOSE 8000
 

@@ -22,8 +22,8 @@ def start_listener():
 
             db = SessionLocal()
 
-            if tipo == "nuevo_evento":
-                evento_id = payload["id"]
+            if tipo == "evento_publicado":
+                evento_id = payload["evento_id"]
                 aforo = payload["aforo"]
                 nombre = payload["nombre"]
                 precio = payload["precio"]

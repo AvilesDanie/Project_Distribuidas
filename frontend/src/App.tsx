@@ -16,10 +16,12 @@ import TicketsPage from './pages/TicketsPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationsPage from './pages/NotificationsPage';
 import SettingsPage from './pages/SettingsPage';
+import EntrySelectionPage from './pages/EntrySelectionPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminEventsPage from './pages/admin/AdminEventsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminStatsPage from './pages/admin/AdminStatsPage';
+import AdminEntriesPage from './pages/admin/AdminEntriesPage';
 import Layout from './components/layout/Layout';
 
 const queryClient = new QueryClient({
@@ -100,6 +102,7 @@ const AppRoutes: React.FC = () => {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="events/:id" element={<EventDetailPage />} />
+        <Route path="events/:eventId/entries" element={<EntrySelectionPage />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="notifications" element={<NotificationsPage />} />
@@ -151,6 +154,14 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute adminOnly>
               <AdminStatsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="admin/entries" 
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminEntriesPage />
             </ProtectedRoute>
           } 
         />
