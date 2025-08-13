@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { 
   Ticket, 
-  Eye, 
   Search,
   Download,
   CheckCircle,
@@ -19,6 +18,7 @@ const AdminEntriesPage: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'activa' | 'cancelada'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const queryClient = useQueryClient();
 
   const { data: events } = useQuery(
     'admin-events',
@@ -36,6 +36,28 @@ const AdminEntriesPage: React.FC = () => {
     { enabled: !!selectedEventId }
   );
 
+  const cancelTicketMutation = useMutation(
+    (ticketId: number) => ticketService.cancelTicket(ticketId),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('all-tickets');
+        if (selectedEventId) {
+          queryClient.invalidateQueries(['event-tickets', selectedEventId]);
+        }
+      }
+    }
+  );
+
+  const handleCancelTicket = async (ticketId: number) => {
+    if (window.confirm('¿Estás seguro de que quieres cancelar esta entrada?')) {
+      try {
+        await cancelTicketMutation.mutateAsync(ticketId);
+      } catch (error) {
+        alert('Error al cancelar la entrada');
+      }
+    }
+  };
+
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -44,27 +66,19 @@ const AdminEntriesPage: React.FC = () => {
     }).format(price);
   };
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const getStatusBadge = (ticket: any) => {
+    // Si tiene usuario asignado, está pagado
+    if (ticket.usuario_id) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Pagado
+        </span>
+      );
+    }
 
-  const getStatusBadge = (status: string) => {
-    const statusLower = status?.toLowerCase();
+    const statusLower = ticket.estado?.toLowerCase();
     switch (statusLower) {
-      case 'activa':
-      case 'válida':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Activa
-          </span>
-        );
       case 'cancelada':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -76,7 +90,7 @@ const AdminEntriesPage: React.FC = () => {
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <Clock className="w-3 h-3 mr-1" />
-            Pendiente
+            Disponible
           </span>
         );
     }
@@ -99,12 +113,20 @@ const AdminEntriesPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de Entradas</h1>
-        <p className="text-gray-600">Administra y monitorea todas las entradas del sistema</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8 bg-white p-6 rounded-xl shadow-sm">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="bg-blue-100 p-3 rounded-lg">
+              <Ticket className="w-8 h-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Gestión de Entradas</h1>
+              <p className="text-gray-600 mt-1">Administra y monitorea todas las entradas del sistema</p>
+            </div>
+          </div>
+        </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -245,25 +267,22 @@ const AdminEntriesPage: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Código
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Evento
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Usuario
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Precio
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -271,7 +290,7 @@ const AdminEntriesPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTickets.map((ticket: any) => (
                   <tr key={ticket.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="bg-blue-100 p-2 rounded-lg mr-3">
                           <Ticket className="w-4 h-4 text-blue-600" />
@@ -281,7 +300,7 @@ const AdminEntriesPage: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
                       <div className="text-sm font-medium text-gray-900">
                         {ticket.evento_nombre || 'Sin evento'}
                       </div>
@@ -289,29 +308,32 @@ const AdminEntriesPage: React.FC = () => {
                         ID: {ticket.evento_id}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {ticket.usuario_id ? `Usuario #${ticket.usuario_id}` : 'Sin asignar'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-green-600">
                         {formatPrice(ticket.precio)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(ticket.estado)}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      {getStatusBadge(ticket)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {ticket.fecha_compra ? formatDate(ticket.fecha_compra) : 'No comprada'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <Download className="w-4 h-4" />
-                      </button>
+                    <td className="px-4 py-4 whitespace-nowrap text-right">
+                      {ticket.usuario_id && ticket.estado?.toLowerCase() !== 'cancelada' ? (
+                        <button 
+                          onClick={() => handleCancelTicket(ticket.id)}
+                          className="text-red-600 hover:text-red-900 px-3 py-1 rounded-md text-sm font-medium hover:bg-red-50 transition-colors flex items-center space-x-1"
+                          disabled={cancelTicketMutation.isLoading}
+                        >
+                          <XCircle className="w-4 h-4" />
+                          <span>Cancelar</span>
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No disponible</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -355,6 +377,7 @@ const AdminEntriesPage: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
