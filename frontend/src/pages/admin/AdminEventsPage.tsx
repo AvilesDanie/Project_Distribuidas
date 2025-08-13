@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Plus, Edit, Trash2, Eye, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Calendar, CheckCircle, XCircle, Upload, Image } from 'lucide-react';
 import { eventService } from '../../services/eventService';
+
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import type { Event, EventFormData, CreateEventRequest } from '../../types/events';
 
 interface TableProps {
@@ -43,6 +44,9 @@ const EventsTable: React.FC<TableProps> = ({
                 Evento
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Imagen
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 Fecha
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
@@ -55,7 +59,7 @@ const EventsTable: React.FC<TableProps> = ({
           </thead>
           <tbody className="bg-gray-900 divide-y divide-gray-700">
             {events.map((event) => (
-              <tr key={event.id} className="hover:bg-gray-800 transition-colors">
+              <tr key={`event-${event.id}-${event.estado}`} className="hover:bg-gray-800 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div>
@@ -63,6 +67,23 @@ const EventsTable: React.FC<TableProps> = ({
                       <div className="text-sm text-gray-400">{event.categoria}</div>
                     </div>
                   </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {event.imagen_url ? (
+                    <img 
+                      src={event.imagen_url} 
+                      alt={event.titulo}
+                      className="w-12 h-12 rounded-lg object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400 text-xs">Sin imagen</span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                   {new Date(event.fecha).toLocaleDateString()}
@@ -116,6 +137,8 @@ const AdminEventsPage: React.FC = () => {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'cancelled'>('all');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const [formData, setFormData] = useState<EventFormData>({
     titulo: '',
@@ -124,85 +147,256 @@ const AdminEventsPage: React.FC = () => {
     categoria: '',
     tipo: 'presencial',
     aforo: 0,
-    precio: 0
+    precio: 0,
+    imagen_url: ''
   });
 
-  const { data: events, isLoading, refetch: manualRefetch } = useQuery('all-events', eventService.getAllEvents, {
+  // Función helper para resetear el formulario
+  const resetForm = () => {
+    setFormData({
+      titulo: '',
+      descripcion: '',
+      fecha: '',
+      categoria: '',
+      tipo: 'presencial',
+      aforo: 0,
+      precio: 0,
+      imagen_url: ''
+    });
+  };
+
+  const { data: events, isLoading, refetch } = useQuery(['all-events', refreshKey], eventService.getAllEvents, {
     staleTime: 0,
     cacheTime: 0,
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    refetchInterval: false
   });
 
   const createEventMutation = useMutation(eventService.createEvent, {
     onSuccess: () => {
-      queryClient.invalidateQueries('all-events');
+      queryClient.invalidateQueries(['all-events']);
+      setRefreshKey(prev => prev + 1); // Forzar actualización
+      refetch(); // Forzar recarga inmediata
       setShowCreateForm(false);
-      setFormData({
-        titulo: '',
-        descripcion: '',
-        fecha: '',
-        categoria: '',
-        tipo: 'presencial',
-        aforo: 0,
-        precio: 0
+      resetForm();
+      
+      // SweetAlert2 para éxito
+      Swal.fire({
+        title: '¡Éxito!',
+        text: 'El evento ha sido creado exitosamente',
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#10b981',
       });
-      toast.success('Evento creado exitosamente');
     },
-    onError: () => {
-      toast.error('Error al crear evento');
+    onError: (error: any) => {
+      // SweetAlert2 para error
+      Swal.fire({
+        title: '¡Error!',
+        text: error.message || 'No se pudo crear el evento',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
     }
   });
 
   const publishEventMutation = useMutation(eventService.publishEvent, {
     onSuccess: () => {
-      queryClient.invalidateQueries('all-events');
-      toast.success('Evento publicado exitosamente');
+      queryClient.invalidateQueries(['all-events']);
+      setRefreshKey(prev => prev + 1); // Forzar actualización
+      refetch(); // Forzar recarga inmediata
+      
+      Swal.fire({
+        title: '¡Publicado!',
+        text: 'El evento ha sido publicado exitosamente',
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#10b981',
+      });
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Error al publicar evento');
+      Swal.fire({
+        title: '¡Error!',
+        text: error.message || 'No se pudo publicar el evento',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
     }
   });
 
   const cancelEventMutation = useMutation(eventService.cancelEvent, {
     onSuccess: () => {
-      queryClient.invalidateQueries('all-events');
-      toast.success('Evento cancelado exitosamente');
+      queryClient.invalidateQueries(['all-events']);
+      setRefreshKey(prev => prev + 1); // Forzar actualización
+      refetch(); // Forzar recarga inmediata
+      
+      Swal.fire({
+        title: '¡Cancelado!',
+        text: 'El evento ha sido cancelado exitosamente',
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#10b981',
+      });
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Error al cancelar evento');
+      Swal.fire({
+        title: '¡Error!',
+        text: error.message || 'No se pudo cancelar el evento',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
     }
   });
 
   const deleteEventMutation = useMutation(eventService.deleteEvent, {
     onSuccess: () => {
-      queryClient.invalidateQueries('all-events');
-      toast.success('Evento eliminado exitosamente');
+      queryClient.invalidateQueries(['all-events']);
+      setRefreshKey(prev => prev + 1); // Forzar actualización
+      refetch(); // Forzar recarga inmediata
+      
+      Swal.fire({
+        title: '¡Eliminado!',
+        text: 'El evento ha sido eliminado exitosamente',
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#10b981',
+      });
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Error al eliminar evento');
+      Swal.fire({
+        title: '¡Error!',
+        text: error.message || 'No se pudo eliminar el evento',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
     }
   });
 
-  const handlePublishEvent = (eventId: number) => {
-    if (window.confirm('¿Estás seguro de que quieres publicar este evento?')) {
+  const handlePublishEvent = async (eventId: number) => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres publicar este evento?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, publicar',
+      cancelButtonText: 'Cancelar',
+      background: '#1f2937',
+      color: '#fff',
+    });
+
+    if (result.isConfirmed) {
       publishEventMutation.mutate(eventId);
     }
   };
 
-  const handleCancelEvent = (eventId: number) => {
-    if (window.confirm('¿Estás seguro de que quieres cancelar este evento?')) {
+  const handleCancelEvent = async (eventId: number) => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres cancelar este evento?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f59e0b',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, cancelar',
+      cancelButtonText: 'No cancelar',
+      background: '#1f2937',
+      color: '#fff',
+    });
+
+    if (result.isConfirmed) {
       cancelEventMutation.mutate(eventId);
     }
   };
 
-  const handleDeleteEvent = (eventId: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.')) {
+  const handleDeleteEvent = async (eventId: number) => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres eliminar este evento? Esta acción no se puede deshacer.',
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      background: '#1f2937',
+      color: '#fff',
+    });
+
+    if (result.isConfirmed) {
       deleteEventMutation.mutate(eventId);
     }
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validaciones adicionales
+    if (formData.precio < 0 || formData.precio > 10000) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'El precio debe estar entre €0 y €10,000',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+    
+    if (formData.aforo < 1 || formData.aforo > 100000) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'El aforo debe estar entre 1 y 100,000 personas',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+    
+    // Validar fecha no sea en el pasado
+    const eventDate = new Date(formData.fecha);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (eventDate < today) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'La fecha del evento no puede ser en el pasado',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+    
     try {
       const eventData: CreateEventRequest = {
         ...formData,
@@ -210,6 +404,73 @@ const AdminEventsPage: React.FC = () => {
       await createEventMutation.mutateAsync(eventData);
     } catch (error) {
       console.error('Error creating event:', error);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'Por favor selecciona un archivo de imagen válido',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+
+    // Validar tamaño de archivo (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        title: '¡Error!',
+        text: 'La imagen es muy grande. Máximo 5MB',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    
+    try {
+      // Subir imagen al servidor
+      const imageUrl = await uploadService.uploadImage(file);
+      setFormData({...formData, imagen_url: imageUrl});
+      
+      // Mostrar mensaje de éxito
+      Swal.fire({
+        title: '¡Imagen cargada!',
+        text: 'La imagen se ha subido correctamente al servidor',
+        icon: 'success',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#10b981',
+        timer: 2000,
+        timerProgressBar: true
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Swal.fire({
+        title: '¡Error!',
+        text: 'No se pudo subir la imagen al servidor',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+        background: '#1f2937',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -311,7 +572,10 @@ const AdminEventsPage: React.FC = () => {
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-2xl font-bold text-white">Crear Nuevo Evento</h2>
               <button
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  resetForm();
+                }}
                 className="text-gray-400 hover:text-white"
               >
                 ✕
@@ -366,6 +630,97 @@ const AdminEventsPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Imagen del Evento
+                </label>
+                <div className="space-y-4">
+                  {/* Solo mostrar área de subida si NO hay imagen */}
+                  {!formData.imagen_url && (
+                    <div>
+                      <label className="flex items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-900/50 hover:bg-gray-800/50 transition-colors">
+                        <div className="flex flex-col items-center justify-center">
+                          {uploadingImage ? (
+                            <>
+                              <LoadingSpinner size="sm" />
+                              <p className="text-sm text-gray-400 mt-2">Cargando imagen...</p>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                              <p className="text-sm text-gray-400">Haz clic para subir imagen</p>
+                              <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 5MB</p>
+                            </>
+                          )}
+                        </div>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingImage}
+                        />
+                      </label>
+                    </div>
+                  )}
+                  
+                  {/* Vista previa de imagen - Más prominente */}
+                  {formData.imagen_url && (
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-green-400 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Imagen cargada exitosamente
+                        </span>
+                        <div className="flex space-x-2">
+                          {/* Botón para cambiar imagen */}
+                          <label className="text-blue-400 hover:text-blue-300 text-sm cursor-pointer flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Cambiar
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              disabled={uploadingImage}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({...formData, imagen_url: ''});
+                            }}
+                            className="text-red-400 hover:text-red-300 text-sm flex items-center"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Quitar
+                          </button>
+                        </div>
+                      </div>
+                      <div className="relative inline-block">
+                        <img 
+                          src={formData.imagen_url} 
+                          alt="Vista previa del evento" 
+                          className="w-full max-w-md h-48 object-cover rounded-lg border-2 border-gray-600 shadow-lg"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            console.error('Error cargando imagen:', formData.imagen_url);
+                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0yMDAgMTUwTDE3NSAxMjVIMTUwVjE3NUgxNzVMMjAwIDE1MFoiIGZpbGw9IiM2QjcyODAiLz4KPHRleHQgeD0iMjAwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZCNzI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2VuIG5vIGRpc3BvbmlibGU8L3RleHQ+Cjwvc3ZnPgo=';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg pointer-events-none"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -384,33 +739,61 @@ const AdminEventsPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Precio *
+                    Precio * (€)
                   </label>
                   <input
                     type="number"
                     required
                     min="0"
                     step="0.01"
-                    value={formData.precio}
-                    onChange={(e) => setFormData({...formData, precio: Number(e.target.value)})}
-                    className="input-field"
-                    placeholder="0.00"
+                    value={formData.precio || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      setFormData({...formData, precio: value});
+                    }}
+                    onBlur={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value < 0) {
+                        setFormData({...formData, precio: 0});
+                      } else if (value > 10000) {
+                        setFormData({...formData, precio: 10000});
+                      } else {
+                        // Auto-formatear a 2 decimales al salir del campo
+                        setFormData({...formData, precio: parseFloat(value.toFixed(2))});
+                      }
+                    }}
+                    className="input-field focus:border-green-500 focus:ring-green-500/20"
+                    placeholder="Ej: 25.50"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Máximo €10,000 - se puede poner 0 para eventos gratuitos</p>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Aforo *
+                    Aforo * (personas)
                   </label>
                   <input
                     type="number"
                     required
                     min="1"
-                    value={formData.aforo}
-                    onChange={(e) => setFormData({...formData, aforo: Number(e.target.value)})}
-                    className="input-field"
-                    placeholder="100"
+                    max="100000"
+                    value={formData.aforo || ''}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      setFormData({...formData, aforo: value});
+                    }}
+                    onBlur={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      if (value < 1) {
+                        setFormData({...formData, aforo: 1});
+                      } else if (value > 100000) {
+                        setFormData({...formData, aforo: 100000});
+                      }
+                    }}
+                    className="input-field focus:border-blue-500 focus:ring-blue-500/20"
+                    placeholder="Ej: 500"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Entre 1 y 100,000 personas</p>
                 </div>
                 
                 <div>
@@ -421,10 +804,10 @@ const AdminEventsPage: React.FC = () => {
                     required
                     value={formData.tipo}
                     onChange={(e) => setFormData({...formData, tipo: e.target.value as 'presencial' | 'virtual'})}
-                    className="input-field"
+                    className="input-field focus:border-purple-500 focus:ring-purple-500/20"
                   >
-                    <option value="presencial">Presencial</option>
-                    <option value="virtual">Virtual</option>
+                    <option value="presencial">🏢 Presencial</option>
+                    <option value="virtual">💻 Virtual</option>
                   </select>
                 </div>
               </div>
@@ -432,7 +815,10 @@ const AdminEventsPage: React.FC = () => {
               <div className="flex space-x-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    resetForm();
+                  }}
                   className="flex-1 btn-secondary"
                 >
                   Cancelar
@@ -493,6 +879,22 @@ const AdminEventsPage: React.FC = () => {
             </div>
             
             <div className="space-y-4">
+              {/* Imagen del evento */}
+              {selectedEvent.imagen_url && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Imagen</h3>
+                  <img 
+                    src={selectedEvent.imagen_url} 
+                    alt={selectedEvent.titulo}
+                    className="w-full h-64 object-cover rounded-lg border border-gray-600"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              
               <div>
                 <h3 className="text-lg font-semibold text-white mb-2">Descripción</h3>
                 <p className="text-gray-300">{selectedEvent.descripcion}</p>
@@ -514,6 +916,20 @@ const AdminEventsPage: React.FC = () => {
                 <div>
                   <h4 className="font-medium text-gray-300">Tipo</h4>
                   <p className="text-white capitalize">{selectedEvent.tipo}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-300">Estado</h4>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    selectedEvent.estado === 'PUBLICADO' ? 'bg-green-100 text-green-800' :
+                    selectedEvent.estado === 'NO_PUBLICADO' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {selectedEvent.estado}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-300">Categoría</h4>
+                  <p className="text-white capitalize">{selectedEvent.categoria}</p>
                 </div>
               </div>
 

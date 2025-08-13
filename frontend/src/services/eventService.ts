@@ -68,29 +68,79 @@ export const eventService = {
   },
 
   async deleteEvent(id: number): Promise<void> {
-    await api.delete(`/eventos/eventos/delete-evento/${id}`);
+    try {
+      await api.delete(`/eventos/eventos/delete-evento/${id}`);
+    } catch (error: any) {
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.detail || error.response.data?.message;
+        
+        if (status === 404) {
+          throw new Error('Evento no encontrado');
+        } else if (status === 400) {
+          throw new Error(message || 'No se puede eliminar: el evento está publicado');
+        } else {
+          throw new Error(message || 'Error al eliminar el evento');
+        }
+      }
+      
+      throw new Error('Error de conexión al eliminar el evento');
+    }
   },
 
   async publishEvent(id: number): Promise<Event> {
-    console.log('Publishing event with ID:', id);
     try {
       const response = await api.put(`/eventos/eventos/publicar-evento/${id}`);
-      console.log('Publish response:', response.data);
-      if (response.data === null) {
+      
+      // Si la respuesta es exitosa pero sin datos, significa que el evento no existe o ya está publicado
+      if (!response.data) {
         throw new Error('No se puede publicar: el evento ya está publicado o no existe.');
       }
+      
       return response.data;
     } catch (error: any) {
-      console.error('Publish event error details:', error);
-      console.error('Error response:', error.response);
-      console.error('Error status:', error.response?.status);
-      console.error('Error data:', error.response?.data);
-      throw error;
+      // Si es un error de respuesta del servidor
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.detail || error.response.data?.message;
+        
+        if (status === 404) {
+          throw new Error('Evento no encontrado');
+        } else if (status === 400) {
+          throw new Error(message || 'El evento ya está publicado o no puede ser publicado');
+        } else {
+          throw new Error(message || 'Error al publicar el evento');
+        }
+      }
+      
+      throw new Error('Error de conexión al publicar el evento');
     }
   },
 
   async cancelEvent(id: number): Promise<Event> {
-    const response = await api.put(`/eventos/eventos/cancelar-evento/${id}`);
-    return response.data;
+    try {
+      const response = await api.put(`/eventos/eventos/cancelar-evento/${id}`);
+      
+      if (!response.data) {
+        throw new Error('No se puede cancelar: el evento no existe.');
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.detail || error.response.data?.message;
+        
+        if (status === 404) {
+          throw new Error('Evento no encontrado');
+        } else if (status === 400) {
+          throw new Error(message || 'El evento no puede ser cancelado');
+        } else {
+          throw new Error(message || 'Error al cancelar el evento');
+        }
+      }
+      
+      throw new Error('Error de conexión al cancelar el evento');
+    }
   }
 };

@@ -52,7 +52,10 @@ def desactivar(id: int, db: Session = Depends(get_db), _: dict = Depends(require
 
 @router.put("/publicar-evento/{id}")
 def publicar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
-    return evento_service.publicar_evento(db, id)
+    evento = evento_service.publicar_evento(db, id)
+    if not evento:
+        raise HTTPException(status_code=400, detail="No se puede publicar: el evento ya está publicado, no existe, o no está en estado borrador")
+    return evento
 
 @router.put("/terminar-evento/{id}")
 def terminar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
@@ -60,7 +63,10 @@ def terminar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_a
 
 @router.delete("/delete-evento/{id}")
 def eliminar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
-    return evento_service.eliminar_evento(db, id)
+    resultado = evento_service.eliminar_evento(db, id)
+    if not resultado:
+        raise HTTPException(status_code=400, detail="No se puede eliminar: el evento no existe o ya está publicado")
+    return {"message": "Evento eliminado exitosamente"}
 
 @router.get("/get-categorias", response_model=List[str])
 def obtener_categorias(db: Session = Depends(get_db)):
@@ -69,7 +75,10 @@ def obtener_categorias(db: Session = Depends(get_db)):
 
 @router.put("/cancelar-evento/{id}")
 def cancelar(id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
-    return evento_service.cancelar_evento(db, id)
+    evento = evento_service.cancelar_evento(db, id)
+    if not evento:
+        raise HTTPException(status_code=400, detail="No se puede cancelar: el evento no existe")
+    return evento
 
 
 @router.get("/buscar-eventos", response_model=List[EventoOutDTO])

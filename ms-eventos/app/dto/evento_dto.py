@@ -9,6 +9,7 @@ class EventoCreateDTO(BaseModel):
     tipo: str
     aforo: int
     precio: float
+    imagen_url: Optional[str] = None
 
 class EventoUpdateDTO(BaseModel):
     titulo: Optional[str] = None
@@ -18,6 +19,7 @@ class EventoUpdateDTO(BaseModel):
     tipo: Optional[str] = None
     aforo: Optional[int] = None
     precio: Optional[float] = None
+    imagen_url: Optional[str] = None
 
 class EventoOutDTO(BaseModel):
     id: int
@@ -29,6 +31,7 @@ class EventoOutDTO(BaseModel):
     aforo: int
     estado: str
     precio: float
+    imagen_url: Optional[str] = None
 
     class Config:
         from_attributes = True

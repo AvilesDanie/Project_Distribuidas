@@ -25,6 +25,19 @@ def desactivar_evento(db: Session, id: int):
     return evento_repository.cambiar_estado(db, id, "DESACTIVADO")
 
 def publicar_evento(db: Session, id: int):
+    # Primero verificar si el evento existe
+    evento_existente = evento_repository.obtener_por_id(db, id)
+    if not evento_existente:
+        return None
+    
+    # Verificar si ya está publicado
+    if evento_existente.estado == "PUBLICADO":
+        return None  # Ya está publicado
+    
+    # Solo publicar si está en estado NO_PUBLICADO
+    if evento_existente.estado != "NO_PUBLICADO":
+        return None  # No se puede publicar desde otros estados
+    
     evento = evento_repository.cambiar_estado(db, id, "PUBLICADO")
     if evento:
         publicar_evento_creado(evento.id, evento.aforo, evento.titulo, evento.precio)

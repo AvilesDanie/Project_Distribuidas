@@ -12,5 +12,5 @@ class Evento(Base):
     tipo = Column(String, nullable=False)
     aforo = Column(Integer, nullable=False)
     estado = Column(String, default="NO_PUBLICADO")  # Otros: PUBLICADO, FINALIZADO, DESACTIVADO
-
     precio = Column(Float, nullable=True)
+    imagen_url = Column(String, nullable=True)

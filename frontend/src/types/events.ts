@@ -8,6 +8,7 @@ export interface Event {
   aforo: number;
   estado: string;
   precio: number;
+  imagen_url?: string;
 }
 
 export interface EventFormData {
@@ -18,6 +19,7 @@ export interface EventFormData {
   tipo: 'presencial' | 'virtual';
   aforo: number;
   precio: number;
+  imagen_url?: string;
 }
 
 export interface CreateEventRequest {
@@ -28,6 +30,7 @@ export interface CreateEventRequest {
   tipo: 'presencial' | 'virtual';
   aforo: number;
   precio: number;
+  imagen_url?: string;
 }
 
 export interface UpdateEventRequest {
@@ -38,6 +41,7 @@ export interface UpdateEventRequest {
   tipo?: 'presencial' | 'virtual';
   aforo?: number;
   precio?: number;
+  imagen_url?: string;
 }
 
 export interface EventSearchParams {

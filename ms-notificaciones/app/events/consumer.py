@@ -16,7 +16,7 @@ def start_consumer():
             usuario_id = data.get("usuario_id")
 
             if tipo == "usuario_creado":
-                mensaje = "Un nuevo administrador fue creado."
+                mensaje = "Un nuevo usuario fue creado."
             elif tipo == "nuevo_evento":
                 mensaje = f"Nuevo evento disponible: {data.get('nombre')}"
             elif tipo == "evento_finalizado":

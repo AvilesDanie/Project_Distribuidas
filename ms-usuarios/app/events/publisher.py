@@ -7,7 +7,7 @@ def publish_user_created(user_id: int):
         "tipo": "usuario_creado",
         "payload": {
             "usuario_id": user_id,
-            "mensaje": "Un nuevo administrador ha sido creado.",
+            "mensaje": "Un nuevo usuario ha sido creado.",
             "tipo": "INFO"
         }
     }
